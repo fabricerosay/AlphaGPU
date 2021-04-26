@@ -11,7 +11,7 @@ end
 
 function lossTot(net,x,y)
     p,v=net(x)
-    return Flux.logitcrossentropy(p,y[1])+Flux.mse(v,y[2])#+0.0001f0*sum(x->sum(abs2,x),Flux.params(net))
+    return Flux.logitcrossentropy(p,y[1])+Flux.mse(v,y[2])
 end
 
 function making_batch(q,batchsize;value=true)
@@ -42,9 +42,7 @@ end
 
 
 function traininPipe(batchsize,net,p;epoch=1, lr=0.001,value=true,βloss=0.0001f0,generation=1)
-     tuation(net,x,y)+0.0001f0*sum(x->sum(abs2,x),Flux.params(net))
-    l=0
-    cpt=0
+    
 
     opt=Flux.Optimise.Optimiser(ADAM(lr),WeightDecay(0.0001))
 
