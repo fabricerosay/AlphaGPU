@@ -30,7 +30,7 @@ end
 
 function trainingPipeline(
     startnet,
-    samplesNumber = 320000,
+    samplesNumber = 32000,
     rollout = 128,
     iteration = 100,
     batchsize = 2*4096,
