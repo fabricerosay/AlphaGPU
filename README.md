@@ -36,12 +36,17 @@ Only simple thing you can change is:
 
 -trainingPipeline(
     startnet,
-    samplesNumber = 32000, ###number of parallel games
-    rollout = 128, ### rollouts
-    iteration = 100, ### number of iteration (selfplay, training, duel)
-    batchsize = 2*4096, #### batch size for training 
-    lr = 0.001, ### learning rate for training 
-    epoch = 1, #### number of epochs for training
+    samplesNumber = 32000, number of parallel games,
+    
+    rollout = 128,   rollouts
+    
+    iteration = 100,  number of iteration (selfplay, training, duel)
+    
+    batchsize = 2*4096,  batch size for training
+    
+    lr = 0.001,  learning rate for training
+    
+    epoch = 1,  number of epochs for training
     )
 
 
