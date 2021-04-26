@@ -10,7 +10,7 @@ end
 
 new_buffer(isize,fsize,steps)=Buffer(Vector(),isize,fsize,isize,steps)
 
-function push_buffer(buffer::Buffer,datas,)
+function push_buffer(buffer::Buffer,datas)
     delta=div((buffer.final_size-buffer.initial_size),buffer.steps)
     buffer.current_size=min(buffer.final_size,buffer.current_size+delta)
     for d in datas
@@ -52,7 +52,7 @@ function trainingPipeline(
         println("iteration: $i")
 
         test_position=mcts_gpu.mcts(net,rollout,samplesNumber)
-        push_buffer(buffer,test_position,false)
+        push_buffer(buffer,test_position)
         println("sample acquis: ",length(test_position))
         println("longueur moyenne des parties: ",length(test_position)/(samplesNumber))
         println("taille du buffer: ",length(buffer.data))
