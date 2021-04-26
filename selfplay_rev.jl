@@ -37,9 +37,9 @@ function trainingPipeline(
     lr = 0.001,
     epoch = 1,
     )
-    if buffer==nothing
-        buffer=new_buffer(2000000,2000000,1)
-    end
+    
+    buffer=new_buffer(2000000,2000000,1)
+   
     net=deepcopy(startnet)
     #
     trainingnet = deepcopy(startnet)
