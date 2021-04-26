@@ -7,7 +7,7 @@ The implementation works only for connect4 and is more an exercice to learn prog
 Few technical details:
 
 -The network we train are residual dense layer, where the residual part is of the form Dense(in, in/4,relu) followed by Dense(in/4,in) followed by addition 
-with entries, then relu. A typical size for in is 1024 and we use 8 such layers.
+with entries, then relu. A typical size for in is 1024 and we use 4 or 6 such layers.(see DenseNet.jl for details)
 
 -Using a RTX 3080, it can selfplay 32000 games in parallel, with 128 rollouts (we use the regularized version of puct as in https://arxiv.org/abs/2007.12509). 
 One full iteration last between 2 and 3 minutes.
@@ -19,7 +19,7 @@ One full iteration last between 2 and 3 minutes.
 
 To start download the folder AlphaGPU, activate and instatiate.
 
-Then type actor=ressimple(1024,8)|>gpu to create the network.
+Then type actor=ressimple(1024,6)|>gpu to create the network.
 
 Then trainingPipeline(actor) to actually start training the network. All network are saved by default in the Data folder.
 
