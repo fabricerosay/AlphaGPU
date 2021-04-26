@@ -358,7 +358,7 @@ function backUp(leaf,vnodes,vnodesStats,v)
 				end
 			end
 			if A!=0
-				λ=1*√(N)/(A+N)
+				λ=2*√(N)/(A+N)
 
 				α=0f0
 
