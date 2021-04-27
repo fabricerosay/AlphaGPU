@@ -286,17 +286,18 @@ function (ctx::MctsContext)(roots::Vector{Node},readout,value=false)
     end
 end
 
+(m::MctsContext)(games::Vector{GameEnv},n)=m([nodeInit(nothing,-1,game) for game in games],n)
 
 function extractRoot(node::Node,value=false)
         n=getActionNumber(node)
         p=zeros(maxActions)
         q=zeros(maxActions)
         N=node.visits
-        π=[action.n/node.visits for action in node.actions]
-        q=[action.n==0 ? 0 : (1+action.w/action.n)/2 for action in node.actions]
-        ππ=optimalPolicy(π,q,N,0.001)
+       
+       
+       
         for k in 1:n
-            p[getNumber(findIndex(node.state,k))]=ππ[k]#node.actions[k].n/node.visits
+            p[getNumber(findIndex(node.state,k))]=node.actions[k].n/node.visits
         end
         if value
             return p,sum(action.w for action in node.actions)/node.visits
