@@ -29,30 +29,36 @@ end
 
 
 function trainingPipeline(
-    startnet,
+    startnet;
+    game="",
     samplesNumber = 32000,
-    rollout = 128,
+    rollout = 64,
     iteration = 100,
     batchsize = 2*4096,
     lr = 0.001,
     epoch = 1,
+    sizein=98,
+    sizeout=7
     )
-    
-    buffer=new_buffer(2000000,2000000,1)
-   
+
+    buffer=new_buffer(2000000,2000000,60)
+
     net=deepcopy(startnet)
     #
     trainingnet = deepcopy(startnet)
 
+    #entries=load_pos()
 
+    elocurve=[0.0]
 
-
+    currentelo=0
 
     for i = 1:iteration
         println("iteration: $i")
-
-        test_position=mcts_gpu.mcts(net,rollout,samplesNumber)
+        θ=i/iteration
+        test_position=mcts_gpu.mcts(net,rollout,samplesNumber,θ=θ)
         push_buffer(buffer,test_position)
+        #buffer=test_position
         println("sample acquis: ",length(test_position))
         println("longueur moyenne des parties: ",length(test_position)/(samplesNumber))
         println("taille du buffer: ",length(buffer.data))
@@ -66,24 +72,38 @@ function trainingPipeline(
         trainingnet,
         buffer,
         epoch = epoch,
-        lr = lr)
+        lr = lr,
+        in=sizein,out=sizeout)
 
-
+        # if i%10==0
+        #     score=full_evaluation(net,entries,600)
+        #     println("score begin hard: $score")
+        # end
 
         duel= mcts_gpu.duelnetwork(trainingnet,net,64,1024)
         CUDA.reclaim()
 
         print("résultat du duel: ", 100 .*duel ./sum(duel))
-
+        EA=1024/(duel[1]+0.5*duel[2])
+        newelo=currentelo-400*log10(EA-1)
+        push!(elocurve,newelo)
+        display(plot(x=0:i,y=elocurve,Geom.point, Geom.line))
+        index=(i-1)%1000+1
+        if index%10==0
+            JLD2.@save pwd() * "/Data" *game *"/elocurve$index.json" elocurve
+        end
         if duel[1] > duel[3]
+            currentelo=newelo
             net = deepcopy(trainingnet)
-            reseau = to_cpu(trainingnet)
+            reseau = to_cpu(net)
             if Sys.free_memory() / 2^20 < 700
                 println("memory reclaim")
                 GC.gc()
 
             end
-            JLD2.@save pwd() * "/Data/reseau$i.json" reseau
+
+
+            JLD2.@save pwd() * "/Data" *game *"/reseau$index.json" reseau
         end
     end
 
