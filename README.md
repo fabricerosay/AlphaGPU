@@ -63,7 +63,7 @@ Depending on the memory of you GPU and the size of the board, you will have to r
 
 -It's very easy to code 4 in row that way, Reversi and Ultimate Tic Tac Toe (soon to be added), and probably checkers but never tried.
 
-# where to go from here
+# Where to go from here
 -optimize the code further (probably not to hard:)
 
 -add katago or muzero enhancement(on the way)
