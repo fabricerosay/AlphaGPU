@@ -2,7 +2,7 @@
 Alphazero on GPU thanks to CUDA.jl
 
 This is another implementation of alphazero algorithm, where almost everything happens on the gpu like in https://arxiv.org/abs/2104.03113
-The implementation works only for Gobang( any size up to 13x13, tested up to 9x9) and is more an exercice to learn programming CUDA in julia than a serious implementation of alphazero.
+The implementation works for Gobang( any size up to 13x13, tested up to 9x9), 4 in a row, and reversi 6x6. It's more an exercice to learn programming CUDA in julia than a serious implementation of alphazero.
 
 Few technical details:
 
@@ -10,17 +10,16 @@ Few technical details:
 
 -Right now the code is messy and here just to showcase the possibility of CUDA.jl
 
--If you want to tweek things you'll have to dig into the code... take a deep breath, I'll be happy to answer any questions( for example right now the size and depth of the network is fixed, but can be manually chnaged in the script mainGobang.jl, the size is 128 for hidden layers and there are 6 of those, for bigger board than tic tac toe i'll recommand 512x8)
+-If you want to tweek things you'll have to dig into the code... take a deep breath, I'll be happy to answer any questions( for example right now the size and depth of the network is fixed, but can be manually chnaged in the script mainNameoftheGame.jl, the size is 128 for hidden layers and there are 6 of those, for bigger board than tic tac toe i'll recommand 512x8)
 
--You can change the board size (tested up to 9x9), for that edit the file Gobang.jl and change N to whatever you want(less than 13) and Nvict(number of aligned pieces to win)(I don't know how to make this param inside a module an Arg ;). 
-
+-You can change the board size for Gobang only (tested up to 9x9), for that edit the file mainGoBang.jl and change N to whatever you want(less than 13) and Nvict(number of aligned pieces to win).
 -By default N=Nvict=3 : Tic Tac Toe.
 
 -Once you have selected the size you want you can launch the training with the following commande line:
 
 julia --project mainGobang.jl
 
-usage: mainGobang.jl [--samples SAMPLES] [--rollout ROLLOUT]
+usage: mainNameoftheGame.jl [--samples SAMPLES] [--rollout ROLLOUT]
                      [--generation GENERATION] [--batchsize BATCHSIZE]
                      [-h]
 
@@ -45,7 +44,7 @@ Depending on the memory of you GPU and the size of the board, you will have to r
 
 -For 9x9 and five in row, it sometimes draw Embryo and sometimes it makes huge Blunder, but the training time is longer to get there (around 10 hours probably).
 
--The same algorithm can produce very strong nets in less than 2 hours for Connect4 (soon to be reimplemented:)
+-The same algorithm can produce very strong nets in less than 2 hours for Connect4
 
 # Implementing your own game
 -Take a look at Gobang.jl to get hints.
