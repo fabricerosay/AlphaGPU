@@ -9,6 +9,10 @@ using Distributions
 
 using ..Game
 
+
+const cpuct=2f0
+const exploration=Float32(1/maxActions)
+
 struct gpuNode
     index::Int
     parent::Int
@@ -105,7 +109,7 @@ end
 					A+=1f0
 				end
 			end
-			λ=2*sqrt(n)/(A+n)
+			λ=cpuct*sqrt(n)/(A+n)
 			α=newton(p,λ)
 
 			for k=1:maxActions
@@ -202,7 +206,7 @@ function expand(leaf,vnodes,vnodesStat,prior,training)
 			if leaf[i].parent==0
 				normalize=0
                 if training
-                    noise=0.25/maxActions
+                    noise=0.25*exploration
                 else
                     noise=0
                 end
