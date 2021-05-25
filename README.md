@@ -62,3 +62,10 @@ Depending on the memory of you GPU and the size of the board, you will have to r
 -using Those you are not restricted to code only the board, of the players but can add features (for example you could code in the state the places where you loose or win immediately, it should make training faster but didn't try)
 
 -It's very easy to code 4 in row that way, Reversi and Ultimate Tic Tac Toe (soon to be added), and probably checkers but never tried.
+
+# where to go from here
+-optimize the code further (probably not to hard:)
+
+-add katago or muzero enhancement(on the way)
+
+-change the policy update(mpo, i.e. \pi*exp(adv/\lambda)) style is very effective at test time, less convincing at training time the idea is that puct converged to a regularized policy and you could change the regularization making it closer to mpo or ppo update. The muesli paper is very tempting...)
