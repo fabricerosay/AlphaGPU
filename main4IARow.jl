@@ -20,19 +20,14 @@ using ProgressMeter
 using Gadfly
 using ArgParse
 
-
-const N=3
-const NN=N*N
-const Nvict=3
-
 include("Bitboard.jl")
-include("Gobang.jl")
+include("4IARow.jl")
 module Game
     export Position, canPlay,play,isOver,affiche,VectorizedState,maxActions,maxLengthGame
-    using ..GoBang
+    using ..FourIARow
 end
 include("DenseNet.jl")
-include("mcts_gpu_gobang.jl")
+include("mcts_gpu.jl")
 include("selfplay_rev.jl")
 include("train.jl")
 
@@ -60,7 +55,7 @@ end
 
 parsed_args = parse_args(ARGS, s)
 
-actor=ressimples(2*GoBang.VectorizedState,GoBang.maxActions,128,6)|>gpu
+actor=ressimples(2*FourIARow.VectorizedState,FourIARow.maxActions,512,6)|>gpu
 
-trainingPipeline(actor,game="GoBang",samplesNumber=parsed_args["samples"],rollout=parsed_args["rollout"],
-iteration=parsed_args["generation"],batchsize=parsed_args["batchsize"],sizein=2*GoBang.VectorizedState,sizeout=GoBang.maxActions)
+trainingPipeline(actor,game="4IARow",samplesNumber=parsed_args["samples"],rollout=parsed_args["rollout"],
+iteration=parsed_args["generation"],batchsize=parsed_args["batchsize"],sizein=2*FourIARow.VectorizedState,sizeout=FourIARow.maxActions)
