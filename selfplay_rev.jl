@@ -41,7 +41,7 @@ function trainingPipeline(
     sizeout=7
     )
 
-    buffer=new_buffer(2000000,2000000,60)
+    buffer=new_buffer(2000000,2000000,1)
 
     net=deepcopy(startnet)
     #
@@ -56,7 +56,11 @@ function trainingPipeline(
     for i = 1:iteration
         println("iteration: $i")
         θ=i/iteration
-        test_position=mcts_gpu.mcts(net,rollout,samplesNumber,θ=θ)
+        ret=mcts_gpu.mcts(net,rollout,samplesNumber,θ=θ)
+        if !ret.valid
+            return ret.data
+        end
+        test_position=ret.data
         push_buffer(buffer,test_position)
         #buffer=test_position
         println("sample acquis: ",length(test_position))
@@ -75,10 +79,7 @@ function trainingPipeline(
         lr = lr,
         in=sizein,out=sizeout)
 
-        # if i%10==0
-        #     score=full_evaluation(net,entries,600)
-        #     println("score begin hard: $score")
-        # end
+
 
         duel= mcts_gpu.duelnetwork(trainingnet,net,64,1024)
         CUDA.reclaim()
@@ -105,6 +106,7 @@ function trainingPipeline(
 
             JLD2.@save pwd() * "/Data" *game *"/reseau$index.json" reseau
         end
+
     end
 
 
