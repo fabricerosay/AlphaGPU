@@ -19,9 +19,9 @@ Few technical details:
 
 julia --project mainGobang.jl
 
-usage: mainNameoftheGame.jl [--samples SAMPLES] [--rollout ROLLOUT]
+usage: main4IARow.jl [--samples SAMPLES] [--rollout ROLLOUT]
                      [--generation GENERATION] [--batchsize BATCHSIZE]
-                     [-h]
+                     [--cpuct CPUCT] [--noise NOISE] [-h]
 
 optional arguments:
   --samples SAMPLES     number of selfplay games per generation (type:
@@ -33,8 +33,13 @@ optional arguments:
   --batchsize BATCHSIZE
                         batchsize for training (type: Int64, default:
                         8192)
+  --cpuct CPUCT         cpuct (exploration coefficient in cpuct
+                        formula) (type: Float32, default: 2.0)
+  --noise NOISE         uniform noise at the root, default to
+                        1/maxActions (type: Float32, default:
+                        0.142857)
   -h, --help            show this help message and exit
-
+  
 Depending on the memory of you GPU and the size of the board, you will have to reduce the number of samples. For Tic Tac Toe 20 generations are enough to get a good network. Right now the exploration is too high for Tic Tac Toe, so the training could be faster, but it works well for 9x9.
 
 # Results
@@ -47,6 +52,9 @@ Depending on the memory of you GPU and the size of the board, you will have to r
 -The same algorithm can produce very strong nets in less than 2 hours for Connect4
 
 -For Reversi things are less convincing but after 2 or 3 hours the net is able to draw or win perfect player when starting( but it seems far from being perfect)
+Good parameters to try Cpuct=2 noise=0.125
+
+-For speed noise is uniform and should be set to 1/average number of moves, then you should play around this value. Usually if loss is dropping to fast you should set noise higher. With so few rollouts as 64, and loss getting too low, the net will be caught in local optima too early.
 
 # Implementing your own game
 -Take a look at Gobang.jl to get hints.
