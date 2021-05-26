@@ -31,6 +31,8 @@ end
 function trainingPipeline(
     startnet;
     game="",
+    cpuct=2.0,
+    noise=0.1f0,
     samplesNumber = 32000,
     rollout = 64,
     iteration = 100,
@@ -56,7 +58,7 @@ function trainingPipeline(
     for i = 1:iteration
         println("iteration: $i")
         θ=i/iteration
-        ret=mcts_gpu.mcts(net,rollout,samplesNumber,θ=θ)
+        ret=mcts_gpu.mcts(net,rollout,samplesNumber,θ=θ,cpuct=cpuct,noise=noise)
         if !ret.valid
             return ret.data
         end
@@ -88,9 +90,9 @@ function trainingPipeline(
         EA=1024/(duel[1]+0.5*duel[2])
         newelo=currentelo-400*log10(EA-1)
         push!(elocurve,newelo)
-        display(plot(x=0:i,y=elocurve,Geom.point, Geom.line))
         index=(i-1)%1000+1
         if index%10==0
+            display(plot(x=0:i,y=elocurve,Geom.point, Geom.line))
             JLD2.@save pwd() * "/Data" *game *"/elocurve$index.json" elocurve
         end
         if duel[1] > duel[3]

@@ -7,11 +7,8 @@ using Flux
 using StatsBase
 using Distributions
 
+
 using ..Game
-
-
-const cpuct=2f0
-const exploration=Float32(1/maxActions)
 
 struct gpuNode
     index::Int
@@ -82,7 +79,7 @@ function newton(p,λ)
 end
 
 
-@inbounds function kdescendTree!(leaves,vnodes,vnodesStats,newindex,prob)
+@inbounds function kdescendTree!(leaves,vnodes,vnodesStats,newindex,prob,cpuct)
 
 	 index = (blockIdx().x - 1) * blockDim().x + threadIdx().x
      stride = blockDim().x * gridDim().x
@@ -195,7 +192,7 @@ end
 
 
 
-function expand(leaf,vnodes,vnodesStat,prior,training)
+function expand(leaf,vnodes,vnodesStat,prior,noiseinit,training)
     index = (blockIdx().x - 1) * blockDim().x + threadIdx().x
     stride = blockDim().x * gridDim().x
     for i = index:stride:length(leaf)
@@ -206,7 +203,7 @@ function expand(leaf,vnodes,vnodesStat,prior,training)
 			if leaf[i].parent==0
 				normalize=0
                 if training
-                    noise=0.25*exploration
+                    noise=0.25*noiseinit
                 else
                     noise=0
                 end
@@ -276,7 +273,7 @@ batch=cu(zeros(2*VectorizedState,L)),
 newindex=cu(1*ones(Int,L)),finished=cu(zeros(L)),transferred=cu(falses(L)))
 
 
-function mcts_single(positions,actor,visits,nthreads;training=true)
+function mcts_single(positions,actor,visits,nthreads;training=true,cpuct=2f0,noise=Float32(1/maxActions))
 	vnodes,vnodesStats,leaf,batch,newindex,finished,transferred=init(length(positions),visits)
 	vnodes=cu(create_roots(positions,visits))
 	numblocks = ceil(Int, length(leaf)/nthreads)
@@ -286,7 +283,7 @@ function mcts_single(positions,actor,visits,nthreads;training=true)
 	for k in 1:visits
 		prob=cu(rand(length(positions),maxLengthGame))
 		t=time()
-        @cuda threads=nthreads blocks=numblocks shmem=maxActions*64*nthreads kdescendTree!(leaf,vnodes,vnodesStats,newindex,prob)
+        @cuda threads=nthreads blocks=numblocks shmem=maxActions*64*nthreads kdescendTree!(leaf,vnodes,vnodesStats,newindex,prob, cpuct)
         synchronize()
 		t1+=time()-t
 		t=time()
@@ -299,7 +296,7 @@ function mcts_single(positions,actor,visits,nthreads;training=true)
 		t5+=time()-t
 
 
-        @cuda threads=nthreads blocks=numblocks expand(leaf,vnodes,vnodesStats,prior,training)
+        @cuda threads=nthreads blocks=numblocks expand(leaf,vnodes,vnodesStats,prior,noise,training)
         synchronize()
 		t3+=time()-t
 		t=time()
@@ -319,7 +316,7 @@ end
 
 
 
-function mcts(actor,visits,ngames;θ=1)
+function mcts(actor,visits,ngames;θ=1,cpuct=2.0,noise=Float32(1/maxActions))
 	ttot=time()
 	positions=[Position() for k in 1:ngames]
 	rtemp=[[] for k in 1:ngames]
@@ -332,7 +329,7 @@ function mcts(actor,visits,ngames;θ=1)
 	CUDA.reclaim()
 	while !isempty(positions)
 		t=time()
-		batch,π=mcts_single(positions,actor,visits,8)
+		batch,π=mcts_single(positions,actor,visits,8,cpuct=cpuct,noise=noise)
 		t1=time()-t
 		policy=[π[i,:] for i in 1:length(positions)]
 		batch=[batch[:,i] for i in 1:length(positions)]
@@ -388,7 +385,7 @@ function mcts(actor,visits,ngames;θ=1)
 	(data=r,valid=true)
 end
 
-function mcts(actor1,actor2,visits,ngames)
+function mcts(actor1,actor2,visits,ngames;cpuct=2f0,noise=Float32(1/maxActions))
 	ttot=time()
 	positions=[Position() for k in 1:ngames]
 	round=0
@@ -402,7 +399,7 @@ function mcts(actor1,actor2,visits,ngames)
 		else
 			actor=actor2
 		end
-		batch,π=mcts_single(copy(positions),actor,visits,8,training=false)
+		batch,π=mcts_single(copy(positions),actor,visits,8,training=false,noise=noise,cpuct=cpuct)
 		policy=[π[i,:] for i in 1:length(positions)]
 		i=1
 		while i<length(positions)+1

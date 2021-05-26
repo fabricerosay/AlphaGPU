@@ -56,11 +56,19 @@ s = ArgParseSettings()
     help = "batchsize for training"
     arg_type = Int
     default = 2*4096
+    "--cpuct"
+    help = "cpuct (exploration coefficient in cpuct formula)"
+    arg_type = Float32
+    default = 2f0
+    "--noise"
+    help = "uniform noise at the root, default to 1/maxActions"
+    arg_type = Float32
+    default = Float32(1/Game.maxActions)
 end
 
 parsed_args = parse_args(ARGS, s)
 
 actor=ressimples(2*GoBang.VectorizedState,GoBang.maxActions,128,6)|>gpu
 
-trainingPipeline(actor,game="GoBang",samplesNumber=parsed_args["samples"],rollout=parsed_args["rollout"],
+trainingPipeline(actor,game="GoBang",cpuct=parsed_args["cpuct"],noise=parsed_args["noise"],samplesNumber=parsed_args["samples"],rollout=parsed_args["rollout"],
 iteration=parsed_args["generation"],batchsize=parsed_args["batchsize"],sizein=2*GoBang.VectorizedState,sizeout=GoBang.maxActions)
