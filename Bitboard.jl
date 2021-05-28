@@ -1,6 +1,6 @@
 module Bitboard
 import Base.getindex,Base.setindex,Base.length,Base.size,Base.:<<,Base.:>>>,Base.setindex!,Base.:~,Base.&,Base.:⊻,Base.:|,Base.copy
-export bitboard,getindex,length,size,setindex!,down,left,right,num_bit,affiche
+export bitboard,getindex,length,size,setindex!,down,left,right,up,num_bit,affiche
 
 struct bitboard{N}
     chunks::NTuple{3,UInt64}
@@ -75,7 +75,7 @@ end
 
 @inline function setindex(bb::bitboard,x,i1::Int,i2::Int)
     i=bb.dims[1]*(i2-1)+i1
-    setindex!(bb,x,i)
+    setindex(bb,x,i)
 end
 
 function copy(bb::bitboard)
@@ -159,6 +159,21 @@ function down(bb::bitboard)
     return typeof(bb)((x,y,z),bb.len,bb.dims)
 end
 
+function up(bb::bitboard)
+    dbb=bb>>>1
+    x,y,z=dbb.chunks
+    for i in size(bb)[1]:size(bb)[1]:length(bb)
+        i1,i2=get_chunks_id(i)
+        if i1==1
+            x&=~(UInt64(1)<<i2)
+        elseif i1==2
+            y&=~(UInt64(1)<<i2)
+        else
+            z&=~(UInt64(1)<<i2)
+        end
+    end
+    return typeof(bb)((x,y,z),bb.len,bb.dims)
+end
 function num_bit(bb::bitboard)
     L=count_ones(bb.chunks[1])+count_ones(bb.chunks[2])+count_ones(bb.chunks[3])
     return L
