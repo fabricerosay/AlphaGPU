@@ -51,7 +51,7 @@ Depending on the memory of you GPU and the size of the board, you will have to r
 
 -The same algorithm can produce very strong nets in less than 2 hours for Connect4
 
--For Reversi things are less convincing but after 2 or 3 hours the net is able to draw or win perfect player when starting( but it seems far from being perfect)
+-For Reversi things are less convincing but after 2 or 3 hours the net is able to draw or win perfect player when going second( but it seems far from being perfect)
 Good parameters to try Cpuct=2 noise=0.125
 
 -For speed noise is uniform and should be set to 1/average number of moves, then you should play around this value. Usually if loss is dropping to fast you should set noise higher. With so few rollouts as 64, and loss getting too low, the net will be caught in local optima too early.
