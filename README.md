@@ -2,7 +2,7 @@
 Alphazero on GPU thanks to CUDA.jl
 
 This is another implementation of alphazero algorithm, where almost everything happens on the gpu like in https://arxiv.org/abs/2104.03113. 
-The core algorithm is Alphazero modified as explained in arXiv:2007.12509
+The core algorithm is Alphazero modified as explained in https://arxiv.org/abs/2007.12509
 The implementation works for Gobang( any size up to 13x13, tested up to 9x9), 4 in a row, reversi 6x6 and Hex any size up to 13x13. 
 
 It's more an exercice to learn programming CUDA in julia than a serious implementation of alphazero.
