@@ -51,7 +51,8 @@ Depending on the memory of you GPU and the size of the board, you will have to r
 
 -The same algorithm can produce very strong nets in less than 2 hours for Connect4
 
--For Hex on 7x7 board, net is able to beat Mohex when starting, after 1.5 hours of training.
+-For Hex on 7x7 board, net is able to beat Mohex when starting, after 1.5 hours of training. You can manually try a trained net using the script testHex.jl. 
+To Lauch a game you need Luxor.jl and commande is testvsordi(net,readout,firstplayer), firstplayer=1 net starts, firstplayer=-1, net goes second.
 
 -For Reversi things are less convincing but after 2 or 3 hours the net is able to draw or win perfect player when going second( but it seems far from being perfect)
 Good parameters to try Cpuct=2 noise=0.125
