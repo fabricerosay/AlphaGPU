@@ -1,9 +1,9 @@
 # AlphaGPU
 Alphazero on GPU thanks to CUDA.jl
 
-This is another implementation of alphazero algorithm, where almost everything happens on the gpu like in https://arxiv.org/abs/2104.03113. 
+This is another implementation of alphazero algorithm, where almost everything happens on the gpu like in https://arxiv.org/abs/2104.03113.
 The core algorithm is Alphazero modified as explained in https://arxiv.org/abs/2007.12509
-The implementation works for Gobang( any size up to 13x13, tested up to 9x9), 4 in a row, reversi 6x6 and Hex any size up to 13x13. 
+The implementation works for Gobang( any size up to 13x13, tested up to 9x9), 4 in a row, reversi 6x6, reversi 8x8 and Hex any size up to 13x13 (tested up to 9x9).
 
 It's more an exercice to learn programming CUDA in julia than a serious implementation of alphazero.
 
@@ -18,9 +18,9 @@ Few technical details:
 -You can change the board size for Gobang (tested up to 9x9) and Hex , for that edit the file mainGoBang.jl and change N to whatever you want(less than 13) and Nvict (for GoBang only, number of aligned pieces to win).
 -By default N=Nvict=3 : Tic Tac Toe.
 
--Once you have selected the size you want you can launch the training with the following commande line:
+-Once you have selected the size you want you can launch the training (for Hex) with the following commande line:
 
-julia --project mainGobang.jl
+julia --project --math-mode=fast --check-bounds=no  mainHex.jl --cpuct 1.5  --rollout 64 --samples 32768 --generation 50
 
 usage: main4IARow.jl [--samples SAMPLES] [--rollout ROLLOUT]
                      [--generation GENERATION] [--batchsize BATCHSIZE]
@@ -42,23 +42,23 @@ optional arguments:
                         1/maxActions (type: Float32, default:
                         0.142857)
   -h, --help            show this help message and exit
-  
+
 Depending on the memory of you GPU and the size of the board, you will have to reduce the number of samples. For Tic Tac Toe 20 generations are enough to get a good network. Right now the exploration is too high for Tic Tac Toe, so the training could be faster, but it works well for 9x9.
 
 # Results
--Up to 8x8 the network is able to draw Embryo after a few hours of training (4 or 5 I think)
+-Up to 8x8 the network is able to draw Embryo after a few hours of training (4 or 5 I think, probably less with this version)
 
--For Tic TacToe it plays probably perfectly after a few minutes 
+-For Tic TacToe it plays probably perfectly after a few minutes
 
 -For 9x9 and five in row, it sometimes draw Embryo and sometimes it makes huge Blunder, but the training time is longer to get there (around 10 hours probably).
 
--The same algorithm can produce very strong nets in less than 2 hours for Connect4
+-The same algorithm can produce very strong nets in 30 minutes for Connect4
 
--For Hex on 7x7 board, net is able to beat Mohex when starting, after 1.5 hours of training. You can manually try a trained net using the script testHex.jl. 
+-For Hex on 7x7 board, net is able to beat Mohex when starting, after 35 minutes. You can manually try a trained net using the script testHex.jl.
 To Lauch a game you need Luxor.jl and commande is testvsordi(net,readout,firstplayer), firstplayer=1 net starts, firstplayer=-1, net goes second.
 
 -For Reversi things are less convincing but after 2 or 3 hours the net is able to draw or win perfect player when going second( but it seems far from being perfect)
-Good parameters to try Cpuct=2 noise=0.125
+
 
 -For speed noise is uniform and should be set to 1/average number of moves, then you should play around this value. Usually if loss is dropping to fast you should set noise higher. With so few rollouts as 64, and loss getting too low, the net will be caught in local optima too early.
 
@@ -78,7 +78,7 @@ Good parameters to try Cpuct=2 noise=0.125
 -It's very easy to code 4 in row that way, Reversi and Ultimate Tic Tac Toe (soon to be added), and probably checkers but never tried.
 
 # Where to go from here
--optimize the code further (probably not to hard:)
+-optimize the code further (right now the major bottleneck is the policy optimization step during mcts)
 
 -add katago or muzero enhancement(on the way)
 
