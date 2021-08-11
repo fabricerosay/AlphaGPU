@@ -1,9 +1,10 @@
 module RevSix
-export Position, canPlay,play,isOver,affiche,VectorizedState,maxActions,maxLengthGame
+export Position, canPlay,play,isOver,affiche,VectorizedState,FeatureSize,maxActions,maxLengthGame
 using ..Bitboard
 
 
 const VectorizedState=36
+const FeatureSize=36
 const maxActions=37
 const maxLengthGame=50
 const empty=bitboard{2}(6,6)
@@ -109,14 +110,22 @@ function isOver(pos)
 	if num_bit(pos.legalplay)!=0 || num_bit(legalplay(pos.bopponent,pos.bplayer))!=0
         return false,Int8(0)
     else
-        test=num_bit(pos.bplayer)-num_bit(pos.bopponent)
-        if test>0
-            return true,pos.player
-        elseif test==0
-            return true,Int8(0)
-        else
-            return true,-pos.player
-        end
+        test=Int8(num_bit(pos.bplayer)-num_bit(pos.bopponent))
+		if test>0
+			return true,pos.player
+		elseif test==0
+			return true,Int8(0)
+		else
+			return true,-pos.player
+		end
+
+        # if test!=0
+        #     return true,pos.player*test
+        # elseif test==0
+        #     return true,Int8(0)
+        # else
+        #     return true,-pos.player*test
+        # end
     end
 end
 

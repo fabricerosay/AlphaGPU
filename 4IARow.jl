@@ -1,11 +1,12 @@
 module FourIARow
-export Position, canPlay,play,isOver,affiche,VectorizedState,maxActions,maxLengthGame
+export Position, canPlay,play,isOver,affiche,VectorizedState,FeatureSize,maxActions,maxLengthGame
 using ..Bitboard
 
 
 const Height=6
 const Width=7
 const VectorizedState=42
+const FeatureSize=42
 const maxActions=7
 const maxLengthGame=42
 const Nvict=4
@@ -16,9 +17,10 @@ struct Position
 	bplayer::bitboard{2}
 	bopponent::bitboard{2}
 	player::Int8
+	round::Int8
 end
 
-Position()=Position(bitboard{2}(Height,Width),bitboard{2}(Height,Width),1)
+Position()=Position(bitboard{2}(Height,Width),bitboard{2}(Height,Width),1,1)
 
 function canPlay(pos,col)
 	  return ~pos.bplayer[1,col] & ~pos.bopponent[1,col]
@@ -38,7 +40,7 @@ function  play(pos,col)
 	end
 	c=Height*(col-1)+free
 	bplayer=Bitboard.setindex(pos.bplayer,true,c)
-	return Position(pos.bopponent,bplayer,-pos.player)
+	return Position(pos.bopponent,bplayer,-pos.player,pos.round+1)
 end
 
 

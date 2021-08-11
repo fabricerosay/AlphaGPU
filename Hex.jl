@@ -1,11 +1,12 @@
 module Hex
-export Position, canPlay,play,isOver,affiche,VectorizedState,maxActions,maxLengthGame
+export Position, canPlay,play,isOver,affiche,VectorizedState,FeatureSize,maxActions,maxLengthGame
 using ..Bitboard
 using .Main:NN,N
 
 
 
 const VectorizedState=(N+1)*(N+1)
+const FeatureSize=VectorizedState
 const maxActions=NN
 const maxLengthGame=NN
 
@@ -16,6 +17,7 @@ struct Position
 	bplayer::bitboard{2}
 	bopponent::bitboard{2}
 	player::Int8
+	lp::Int8
 end
 const empty=bitboard{2}(N+1,N+1)
 function init()
@@ -30,7 +32,7 @@ end
 
 const startx,starto=init()
 
-Position()=Position(startx,starto,1)
+Position()=Position(startx,starto,1,NN)
 
 function canPlay(pos,col)
 	x=div(col-1,N)
@@ -45,7 +47,7 @@ function  play(pos,col)
 	y=col-N*x
 	newcol=(N+1)*(x+1)+y+1
 	bplayer=Bitboard.setindex(pos.bplayer,true,newcol)
-	return Position(pos.bopponent,bplayer,-pos.player)
+	return Position(pos.bopponent,bplayer,-pos.player,pos.lp-Int8(1))
 end
 
 

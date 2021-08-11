@@ -1,14 +1,15 @@
 module GoBang
-export Position, canPlay,play,isOver,affiche,VectorizedState,maxActions,maxLengthGame
+export Position, canPlay,play,isOver,affiche,VectorizedState,FeatureSize,maxActions,maxLengthGame
 using ..Bitboard
+using .Main:NN,N,Nvict
 
 
-const N=3
-const NN=N*N
+
 const VectorizedState=NN
+const FeatureSize=NN
 const maxActions=NN
 const maxLengthGame=NN
-const Nvict=3
+
 
 
 
@@ -16,9 +17,10 @@ struct Position
 	bplayer::bitboard{2}
 	bopponent::bitboard{2}
 	player::Int8
+	round::Int8
 end
 
-Position()=Position(bitboard{2}(N,N),bitboard{2}(N,N),1)
+Position()=Position(bitboard{2}(N,N),bitboard{2}(N,N),1,0)
 
 function canPlay(pos,col)
 	  return ~pos.bplayer[col] & ~pos.bopponent[col]
@@ -27,7 +29,7 @@ end
 
 function  play(pos,col)
 	bplayer=Bitboard.setindex(pos.bplayer,true,col)
-	return Position(pos.bopponent,bplayer,-pos.player)
+	return Position(pos.bopponent,bplayer,-pos.player,pos.round+1)
 end
 
 
@@ -37,7 +39,7 @@ function isOver(pos)
 		board=board&right(board)
 	end
 	if num_bit(board)!=0
-		return true,-pos.player
+		return true,-pos.player*(Int8(NN+1)-pos.round)
 	end
 
 	board=pos.bopponent
@@ -45,7 +47,7 @@ function isOver(pos)
 		board=board&down(board)
 	end
 	if num_bit(board)!=0
-		return true,-pos.player
+		return true,-pos.player*(Int8(NN+1)-pos.round)
 	end
 
 	board=pos.bopponent
@@ -53,7 +55,7 @@ function isOver(pos)
 		board=board&down(right(board))
 	end
 	if num_bit(board)!=0
-		return true,-pos.player
+		return true,-pos.player*(Int8(NN+1)-pos.round)
 	end
 
 	board=pos.bopponent
@@ -61,7 +63,7 @@ function isOver(pos)
 		board=board & left(down(board))
 	end
 	if num_bit(board)!=0
-		return true,-pos.player
+		return true,-pos.player*(Int8(NN+1)-pos.round)
 	end
 
 	return num_bit(pos.bplayer)+num_bit(pos.bopponent)==NN,Int8(0)

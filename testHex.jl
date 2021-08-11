@@ -18,7 +18,8 @@ end
 const Dic_coups,Dic_coups_inv=generate_dict()
 
 function testvsordi(actor,readout,joueur=1;pos=nothing)
-
+    #vnodes,vnodesStats,leaf,newindex=mcts_gpu.init(1,readout)
+	puct=FMCTS.MctsContext(1.5,convert_back_cpu(actor),zeros(Float32,200))
     if pos==nothing
         game=mcts_gpu.Position()
     else
@@ -29,11 +30,12 @@ function testvsordi(actor,readout,joueur=1;pos=nothing)
    while !mcts_gpu.isOver(game)[1]
        if game.player==joueur
 
-           _,p=mcts_gpu.mcts_single([game for k in 1:1],actor,readout,8,training=false)
-#
-            c=argmax(p[1,:])
+           #_,p=mcts_gpu.mcts_single([game for k in 1:1],actor,readout,256,vnodesStats,leaf,newindex,training=false)
+#          _,p=mcts_gpu.mcts_single(actor,readout,256,vnodes,vnodesStats,leaf,newindex,1,training=false,cpuct=1.5,noise=1/49)
+		  p,v=puct(game,readout)
+			c=argmax(p)
 
-
+		   println("situation: $v")
            println( "coups du joueur: ",Dic_coups[c])#(x,y), "\n ")
 
 
@@ -58,6 +60,7 @@ function testvsordi(actor,readout,joueur=1;pos=nothing)
        end
        push!(history,c)
        game=mcts_gpu.play(game,c)
+       #mcts_gpu.re_init(cu([game for k in 1:1]),vnodes,1,1,1)
        display(dr(game))
 
 

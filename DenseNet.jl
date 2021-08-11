@@ -190,11 +190,11 @@ end
 
 
 
-function ressimplesf(in,out,n_filter,n_tower)
+function ressimplesf(in,out,fsize,n_filter,n_tower)
 
      return networkf(Dense(in,n_filter,relu,bias = Flux.Zeros()),[resnets(n_filter,n_filter) for k in 1:n_tower]
      ,Dense(n_filter,out),
-     Dense(n_filter,1,σ),Dense(n_filter,36,tanh))|>gpu
+     Dense(n_filter,1,σ),Dense(n_filter,fsize,tanh))|>gpu
 end
 
 mutable struct networkff
