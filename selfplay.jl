@@ -31,14 +31,14 @@ function trainingPipeline(
         println("iteration: $i")
         θ=1-i/iteration
         #Init=mcts_gpu.init(samplesNumber,rollout)
-        mcts_gpu.mcts(convert_back(net),rollout,samplesNumber,buffer,cpuct=cpuct,noise=noise)
+        mcts_gpu.mcts(net,rollout,samplesNumber,buffer,cpuct=cpuct,noise=noise)
         println("fin de la première volée")
 
         #println("sample acquis: ",length(test_position))
         #println("longueur moyenne des parties: ",length(test_position)/(samplesNumber))
         println("taille du buffer: ",length_buffer(buffer))
 
-
+        #return buffer
 
 
 
@@ -53,7 +53,7 @@ function trainingPipeline(
         index=(i-1)%1000+1
         if true
 
-        duel= mcts_gpu.duelnetwork(convert_back(trainingnet),convert_back(net),32,1024,-1)
+        duel= mcts_gpu.duelnetwork(trainingnet,net,32,1024,-1)
         #acc=full_evaluation(net,entries,600)
 
 

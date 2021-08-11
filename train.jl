@@ -9,39 +9,24 @@ function losspolicy(net,x,y)
     return Flux.logitcrossentropy(p,y[1])
 end
 
-function lossTot(net,x,y)
-    p,v,f=net(x,training=true)
-    return Flux.logitcrossentropy(p,y[1])+Flux.mse(v,y[2])+0.001f0*Flux.mse(f,y[3])#+0.1*Flux.logitcrossentropy(p2,y[4])#+0.0001f0*sum(x->sum(abs2,x),Flux.params(net))
+function lossTot(m,x,y)
+    b=m.encoder(x)
+    p,v,f=m.policy(b),m.value(b),m.feature(b)
+    # Zygote.ignore() do
+    #     print(typeof(x[2][1]))
+    #     c=cat(b,x[2][1],dims=1)
+    #     print(typeof(c))
+    # end
+    # b=m.transition(c)
+    # p1=m.policy(b)
+    loss=Flux.logitcrossentropy(p,y[1])+Flux.mse(v,y[2])+0.001f0*Flux.mse(f,y[3])
+    #loss+=0.1f0*Flux.logitcrossentropy(p,y[4][1])
+    # loss+=0.1f0*Flux.logitcrossentropy(p2,y[4][2])
+    # loss+=0.1f0*Flux.logitcrossentropy(p3,y[4][3])
+    return loss
 end
 
-function making_batch(q,batchsize;value=true,in,out,fsize)
-    r=[]
 
-
-    for a in partition(q,batchsize)
-
-        tmpx=zeros(Float32,(in,length(a)))
-        tmpy=zeros(Float32,(out,length(a)))
-        #tmpff=zeros(Float32,(out,length(a)))
-        tmpf=zeros(Float32,(fsize,length(a)))
-        tmpr=zeros(Float32,(1,length(a)))
-
-
-        for (k,(x,y)) in enumerate(a)
-
-                tmpx[:,k].=x
-
-                tmpy[:,k].=y[1]
-                tmpr[:,k].=y[2]
-                tmpf[:,k].=y[3]
-                #tmpff[:,k].=y[4]
-
-        end
-        push!(r,(tmpx|>gpu,(tmpy|>gpu,tmpr|>gpu,tmpf|>gpu)))#,tmpff|>gpu)))
-    end
-    GC.gc(true)
-    return r
-end
 
 
 function traininPipe(batchsize,net,p;in=98,out=7,fsize=1,epoch=1, lr=0.001,value=true,βloss=0.0001f0,generation=1,actor2=nothing)
@@ -49,7 +34,8 @@ function traininPipe(batchsize,net,p;in=98,out=7,fsize=1,epoch=1, lr=0.001,value
 
     opt=Flux.Optimise.Optimiser(ADAM(lr),WeightDecay(0.0001))
     #q=sample(p,4*length(p))
-    testmode!(net,false)
+
+    K=p.unrollsteps
     for i  in 1:epoch
 
          println("epoque: ",i)
@@ -67,10 +53,14 @@ function traininPipe(batchsize,net,p;in=98,out=7,fsize=1,epoch=1, lr=0.001,value
          t=time()
          tmpx=zeros(Float32,(in,batchsize))
          tmpy=zeros(Float32,(out,batchsize))
+         tmpyy=[zeros(Float32,(out,batchsize)) for k in 1:K]
+         tmpm=[zeros(Float32,(out,batchsize)) for k in 1:K]
          tmpf=zeros(Float32,(fsize,batchsize))
          tmpr=zeros(Float32,(1,batchsize))
          tmpx_g=CuArray(zeros(Float32,(in,batchsize)))
          tmpy_g=CuArray(zeros(Float32,(out,batchsize)))
+         tmpyy_g=[CuArray(zeros(Float32,(out,batchsize))) for k in 1:K]
+         tmpm_g=[CuArray(zeros(Float32,(out,batchsize))) for k in 1:K]
          tmpf_g=CuArray(zeros(Float32,(fsize,batchsize)))
          tmpr_g=CuArray(zeros(Float32,(1,batchsize)))
          for (cpt,a) in enumerate(partition(q,batchsize))
@@ -82,18 +72,31 @@ function traininPipe(batchsize,net,p;in=98,out=7,fsize=1,epoch=1, lr=0.001,value
              for (k,sp) in enumerate(a)
 
                      tmpx[:,k].=sp.state
-                     tmpy[:,k].=sp.policy
+                     tmpy[:,k].=sp.policy[:,1]
                      tmpr[:,k].=sp.value
                      tmpf[:,k].=sp.fstate
-
-
+                     # for j in 1:K
+                     #     tmpyy[j][:,k].=sp.policy[:,j+1]
+                     #     c=sp.move[j]
+                     #     if c!=0
+                     #         tmpm[j][sp.move[j],k]=1
+                     #    end
+                     # end
              end
+
              copyto!(tmpx_g,tmpx)
              copyto!(tmpy_g,tmpy)
              copyto!(tmpr_g,tmpr)
              copyto!(tmpf_g,tmpf)
-             totloss+=custom_train!((x,y)->lossTot(net,x,y),Flux.params(net),[(tmpx_g,(tmpy_g,tmpr_g,tmpf_g))],opt)
+             # for j in 1:K
+             #     copyto!(tmpyy_g[j],tmpyy[j])
+             #     copyto!(tmpm_g[j],tmpm[j])
+             # end
 
+             totloss+=custom_train!((x,y)->lossTot(net,x,y),Flux.params(net),[(tmpx_g,(tmpy_g,tmpr_g,tmpf_g))],opt)#,tmpf_g,tmpyy_g))],opt)
+             # for j in 1:K
+             #     tmpm[j].=0
+             # end
          end
          tmpx=nothing
          tmpy=nothing

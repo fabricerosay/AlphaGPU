@@ -530,11 +530,9 @@ function mcts_single(actor,visits,nthreads,vnodes,vnodesStats,leaf,newindex,L;tr
 		t2+=time()-t
 
 		t=time()
-        if conv
-            prior,v=actor(reshape(batch,(Game.entrysize...,L)))
-        else
-		    prior,v=actor(view(vnodesStats.batch,:,1:L),training=false)
-        end
+
+		prior,v=actor(view(vnodesStats.batch,:,1:L))
+
 
 		 softmax!(prior)
         synchronize()
@@ -632,17 +630,18 @@ function mcts(actor,visits,ngames,buffer::Main.PoolSample;θ=1,cpuct=2.0,noise=F
         finished=[]
         t2=time()
 		for  i in 1:length(positions)
-
 			index=Main.push_buffer(buffer,batch,policy,positions[i].player,i)
 			push!(rtemp[i],index)
-            pol=buffer.pool[index].policy
+			pol=buffer.pool[index].policy
 			if round<25
-                lp=[c for c in 1:maxActions if pol[c]!=0]
+				lp=[c for c in 1:maxActions if pol[c]!=0]
 				c=sample(lp,Weights(pol[lp]))
 
 			else
-				c=argmax(pol)
+				c=argmax(pol)[1]
 			end
+			buffer.pool[index].move[1]=c
+
 
 			if !canPlay(positions[i],c)
 				println("faute")
