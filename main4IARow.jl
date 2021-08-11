@@ -23,7 +23,7 @@ using ArgParse
 include("Bitboard.jl")
 include("4IARow.jl")
 module Game
-    entrysize=Main.NN
+
     export Position, canPlay,play,isOver,affiche,VectorizedState,FeatureSize,maxActions,maxLengthGame,PoolSample,push_buffer,update_buffer,length_buffer
     using ..FourIARow
     mutable struct Sample

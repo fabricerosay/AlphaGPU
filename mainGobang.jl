@@ -30,7 +30,7 @@ include("Gobang.jl")
 module Game
     entrysize=Main.NN
     export Position, canPlay,play,isOver,affiche,VectorizedState,FeatureSize,maxActions,maxLengthGame,PoolSample,push_buffer,update_buffer,length_buffer
-    using ..Gobang
+    using ..GoBang
     mutable struct Sample
         state::Vector{Int8}
         policy::Vector{Float32}

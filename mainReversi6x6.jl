@@ -23,9 +23,60 @@ using ArgParse
 include("Bitboard.jl")
 include("Reversi6x6.jl")
 module Game
-    export Position, canPlay,play,isOver,affiche,VectorizedState,maxActions,maxLengthGame
+
+    export Position, canPlay,play,isOver,affiche,VectorizedState,FeatureSize,maxActions,maxLengthGame,PoolSample,push_buffer,update_buffer,length_buffer
     using ..RevSix
+    mutable struct Sample
+        state::Vector{Int8}
+        policy::Vector{Float32}
+        player::Int8
+        value::Float32
+        fstate::Vector{Int8}
+    end
+
+    Sample()=Sample(zeros(Int8,2*VectorizedState),zeros(Float32,maxActions),1,0,zeros(Int8,FeatureSize))
+
+
+    mutable struct PoolSample
+        length::Int
+        currentIndex::Int
+        pool::Vector{Sample}
+        full::Bool
+    end
+
+    PoolSample(N::Int)=PoolSample(N,1,Sample[Sample() for k in 1:N],false)
+
+    function push_buffer(buffer::PoolSample,state,policy,player,i)
+        index=buffer.currentIndex
+        @views begin
+            buffer.pool[index].state.=state[:,i]
+            buffer.pool[index].policy.=policy[i,:]
+        end
+        buffer.pool[index].player=player
+
+        newindex=index==buffer.length ? 1 : index+1
+        if newindex==1
+            buffer.full=true
+        end
+        buffer.currentIndex=newindex
+        return index
+    end
+
+    function update_buffer(buffer::PoolSample,index,result,fstate)
+        L=length(index)
+        for (k,id) in enumerate(index)
+
+            player=buffer.pool[id].player
+
+            buffer.pool[id].value=(1+result*player)/2
+            buffer.pool[id].fstate.=fstate*player
+
+        end
+    end
+
+    length_buffer(buffer::PoolSample)=buffer.full ? buffer.length : buffer.currentIndex-1
 end
+using .Game
 include("DenseNet.jl")
 include("mcts_gpu.jl")
 include("selfplay_rev.jl")
@@ -63,7 +114,27 @@ end
 
 parsed_args = parse_args(ARGS, s)
 
-actor=ressimples(2*RevSix.VectorizedState,RevSix.maxActions,512,6)|>gpu
+function main(generation)
+     #JLD2.@load "DataHex/reseau400.json" reseau
+     #net=reseau|>gpu
+    net=ressimplesf(2*Game.VectorizedState,Game.maxActions,Game.FeatureSize,512,2)|>gpu
+    trainingnet=deepcopy(net)
+    buffer=PoolSample(2000000)
+    best=1
+    currentelo=-1000
+    for i in 1:generation
+        net,trainingnet,passing,currentelo=trainingPipeline(net,trainingnet,buffer,i,currentelo,game="Reversi",cpuct=parsed_args["cpuct"],noise=parsed_args["noise"],samplesNumber=parsed_args["samples"],rollout=parsed_args["rollout"],
+        iteration=1,batchsize=parsed_args["batchsize"],sizein=2*Game.VectorizedState,sizeout=Game.maxActions,fsize=Game.FeatureSize)
+        reseau=net|>cpu
+        if passing
+            best=i
+        end
+        println("meilleur réseau: $best")
+        println("elo actuel: $currentelo, generation: $i")
 
-trainingPipeline(actor,game="Reversi",cpuct=parsed_args["cpuct"],noise=parsed_args["noise"],samplesNumber=parsed_args["samples"],rollout=parsed_args["rollout"],
-iteration=parsed_args["generation"],batchsize=parsed_args["batchsize"],sizein=2*RevSix.VectorizedState,sizeout=RevSix.maxActions)
+
+        net=reseau|>gpu
+    end
+end
+
+main(parsed_args["generation"])

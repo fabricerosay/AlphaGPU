@@ -39,7 +39,7 @@ function isOver(pos)
 		board=board&right(board)
 	end
 	if num_bit(board)!=0
-		return true,-pos.player*(Int8(NN+1)-pos.round)
+		return true,-pos.player
 	end
 
 	board=pos.bopponent
@@ -47,7 +47,7 @@ function isOver(pos)
 		board=board&down(board)
 	end
 	if num_bit(board)!=0
-		return true,-pos.player*(Int8(NN+1)-pos.round)
+		return true,-pos.player
 	end
 
 	board=pos.bopponent
@@ -55,7 +55,7 @@ function isOver(pos)
 		board=board&down(right(board))
 	end
 	if num_bit(board)!=0
-		return true,-pos.player*(Int8(NN+1)-pos.round)
+		return true,-pos.player
 	end
 
 	board=pos.bopponent
@@ -63,7 +63,7 @@ function isOver(pos)
 		board=board & left(down(board))
 	end
 	if num_bit(board)!=0
-		return true,-pos.player*(Int8(NN+1)-pos.round)
+		return true,-pos.player
 	end
 
 	return num_bit(pos.bplayer)+num_bit(pos.bopponent)==NN,Int8(0)
