@@ -9,7 +9,7 @@ using Flux:@functor
 using Distributions
 using Random
 using StaticArrays
-using StatsBase
+#using StatsBase
 using Zygote
 using Base.Threads:@threads,@spawn
 using JLD2
