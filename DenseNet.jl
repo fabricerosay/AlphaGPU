@@ -158,6 +158,60 @@ function ressimplestanh(in,out,n_filter,n_tower)
      Dense(n_filter,1,tanh))|>gpu
 end
 
+mutable struct Encoder
+    encoder
+end
+
+mutable struct Transition
+    transition
+end
+
+mutable struct Policy
+    policy
+end
+
+mutable struct Value
+    value
+end
+
+mutable struct Feature
+    feature
+end
+
+Flux.@functor Encoder
+Flux.@functor Transition
+Flux.@functor Policy
+Flux.@functor Value
+Flux.@functor Feature
+
+
+Encoder(in,nfilter,ntower)=Encoder(Chain(Dense(in,nfilter,relu,bias = Flux.Zeros()),Chain([resnets(nfilter,nfilter) for k in 1:ntower]...)))
+(enc::Encoder)(x)=enc.encoder(x)
+Transition(in,nfilter,ntower)=Transition(Chain(Dense(in+nfilter,nfilter,relu,bias = Flux.Zeros()),Chain([resnets(nfilter,nfilter) for k in 1:ntower]...)))
+(trans::Transition)(x)=trans.transtion(x)
+Policy(nfilter,out)=Policy(Dense(nfilter,out))
+(pol::Policy)(x)=pol.policy(x)
+Value(nfilter::Int)=Value(Dense(nfilter,1,σ))
+(val::Value)(x)=val.value(x)
+Feature(nfeature,nfilter)=Feature(Dense(nfilter,nfeature,tanh))
+(feat::Feature)(x)=feat.feature(x)
+mutable struct MuNet
+    encoder::Encoder
+    transition::Transition
+    policy::Policy
+    value::Value
+    feature::Feature
+end
+
+Flux.@functor MuNet
+
+MuNet(in,out,feature,nfilter,ntower1,ntower2)=MuNet(Encoder(in,nfilter,ntower1),Transition(out,nfilter,ntower2),Policy(nfilter,out),Value(nfilter),Feature(feature,nfilter))
+
+function (m::MuNet)(x::AbstractArray)
+    b=m.encoder(x)
+    return (m.policy(b),m.value(b),m.feature(b))
+end
+
 mutable struct networkf
     base
     res
