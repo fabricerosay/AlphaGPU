@@ -632,7 +632,7 @@ function mcts(actor,visits,ngames,buffer::Main.PoolSample;θ=1,cpuct=2.0,noise=F
 		for  i in 1:length(positions)
 			index=Main.push_buffer(buffer,batch,policy,positions[i].player,i)
 			push!(rtemp[i],index)
-			pol=buffer.pool[index].policy
+			pol=@view buffer.pool[index].policy[:,1]
 			if round<25
 				lp=[c for c in 1:maxActions if pol[c]!=0]
 				c=sample(lp,Weights(pol[lp]))

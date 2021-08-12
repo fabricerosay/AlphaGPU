@@ -10,16 +10,14 @@ function losspolicy(net,x,y)
 end
 
 function lossTot(m,x,y)
-    b=m.encoder(x)
+    b=m.encoder(x[1],true)
     p,v,f=m.policy(b),m.value(b),m.feature(b)
-    # Zygote.ignore() do
-    #     print(typeof(x[2][1]))
-    #     c=cat(b,x[2][1],dims=1)
-    #     print(typeof(c))
-    # end
-    # b=m.transition(c)
-    # p1=m.policy(b)
     loss=Flux.logitcrossentropy(p,y[1])+Flux.mse(v,y[2])+0.001f0*Flux.mse(f,y[3])
+    for k in 1:3
+        b=vcat(b,x[2][k])
+        b=m.transition(b,true)
+        loss+=0.1f0*Flux.logitcrossentropy(m.policy(b),y[4][k])
+    end
     #loss+=0.1f0*Flux.logitcrossentropy(p,y[4][1])
     # loss+=0.1f0*Flux.logitcrossentropy(p2,y[4][2])
     # loss+=0.1f0*Flux.logitcrossentropy(p3,y[4][3])
@@ -75,28 +73,28 @@ function traininPipe(batchsize,net,p;in=98,out=7,fsize=1,epoch=1, lr=0.001,value
                      tmpy[:,k].=sp.policy[:,1]
                      tmpr[:,k].=sp.value
                      tmpf[:,k].=sp.fstate
-                     # for j in 1:K
-                     #     tmpyy[j][:,k].=sp.policy[:,j+1]
-                     #     c=sp.move[j]
-                     #     if c!=0
-                     #         tmpm[j][sp.move[j],k]=1
-                     #    end
-                     # end
+                     for j in 1:K
+                         tmpyy[j][:,k].=sp.policy[:,j+1]
+                         c=sp.move[j]
+                         if c!=0
+                             tmpm[j][sp.move[j],k]=1
+                        end
+                     end
              end
 
              copyto!(tmpx_g,tmpx)
              copyto!(tmpy_g,tmpy)
              copyto!(tmpr_g,tmpr)
              copyto!(tmpf_g,tmpf)
-             # for j in 1:K
-             #     copyto!(tmpyy_g[j],tmpyy[j])
-             #     copyto!(tmpm_g[j],tmpm[j])
-             # end
+             for j in 1:K
+                 copyto!(tmpyy_g[j],tmpyy[j])
+                 copyto!(tmpm_g[j],tmpm[j])
+             end
 
-             totloss+=custom_train!((x,y)->lossTot(net,x,y),Flux.params(net),[(tmpx_g,(tmpy_g,tmpr_g,tmpf_g))],opt)#,tmpf_g,tmpyy_g))],opt)
-             # for j in 1:K
-             #     tmpm[j].=0
-             # end
+             totloss+=custom_train!((x,y)->lossTot(net,x,y),Flux.params(net),[((tmpx_g,tmpm_g),(tmpy_g,tmpr_g,tmpf_g,tmpyy_g))],opt)#,tmpf_g,tmpyy_g))],opt)
+             for j in 1:K
+                 tmpm[j].=0
+             end
          end
          tmpx=nothing
          tmpy=nothing

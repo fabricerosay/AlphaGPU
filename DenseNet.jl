@@ -187,10 +187,10 @@ Flux.@functor Encoder
 
 
 Encoder(in,nfilter,ntower)=Encoder(Dense(in,nfilter,relu,bias = Flux.Zeros()),[resnets(nfilter,nfilter) for k in 1:ntower])
-function (enc::Encoder)(x)
+function (enc::Encoder)(x,training)
     b=enc.base(x)
     for r in enc.res
-        b=r(b)
+        b=r(b,training)
     end
     return b
 end
@@ -219,9 +219,13 @@ to_cpu(nn::MuNet)=nn|>cpu
 
 MuNet(in,out,feature,nfilter,ntower1,ntower2)=MuNet(Encoder(in,nfilter,ntower1),Transition(out,nfilter,ntower2),Dense(nfilter,out),Dense(nfilter,1,σ),Dense(nfilter,feature,tanh))
 
-function (m::MuNet)(x::AbstractArray)
-    b=m.encoder(x)
-    return (m.policy(b),m.value(b))
+function (m::MuNet)(x::AbstractArray,training=false)
+    b=m.encoder(x,training)
+    if training
+        return (m.policy(b),m.value(b),m.feature(b))
+    else
+        return (m.policy(b),m.value(b))
+    end
 end
 
 function(m::MuNet)(x::AbstractArray,y::Vector{T}) where T
@@ -262,7 +266,7 @@ function (m::networkf)(x;training=false)
         end
     end
     if training
-        return (m.policy(b),m.policy1(b),m.policy2(b),m.policy3(b),m.value(b),m.feature(b))
+        return (m.policy(b),m.value(b),m.feature(b))
     else
         return (m.policy(b),m.value(b))
     end

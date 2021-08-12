@@ -99,7 +99,7 @@ s = ArgParseSettings()
     "--samples"
     help = "number of selfplay games per generation"
     arg_type = Int
-    default = 8*1024
+    default = 32*1024
     "--rollout"
     help = "number of rollouts"
     arg_type = Int
