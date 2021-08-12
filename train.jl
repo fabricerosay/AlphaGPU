@@ -16,7 +16,7 @@ function lossTot(m,x,y)
     for k in 1:3
         b=vcat(b,x[2][k])
         b=m.transition(b,true)
-        loss+=0.1f0*Flux.logitcrossentropy(m.policy(b),y[4][k])
+        loss+=0.01f0*Flux.logitcrossentropy(m.policy(b),y[4][k])/3f0
     end
     #loss+=0.1f0*Flux.logitcrossentropy(p,y[4][1])
     # loss+=0.1f0*Flux.logitcrossentropy(p2,y[4][2])
