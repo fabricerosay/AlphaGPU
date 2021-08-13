@@ -24,7 +24,7 @@ include("Bitboard.jl")
 include("Reversi8x8.jl")
 
 module Game
-    
+
     export Position, canPlay,play,isOver,affiche,VectorizedState,FeatureSize,maxActions,maxLengthGame,PoolSample,push_buffer,update_buffer,length_buffer
     using ..RevSix
     mutable struct Sample
@@ -91,7 +91,7 @@ s = ArgParseSettings()
     "--samples"
     help = "number of selfplay games per generation"
     arg_type = Int
-    default = 32*1024
+    default = 16*1024
     "--rollout"
     help = "number of rollouts"
     arg_type = Int
@@ -119,9 +119,9 @@ parsed_args = parse_args(ARGS, s)
 
 
 function main(generation)
-     #JLD2.@load "DataHex/reseau400.json" reseau
-     #net=reseau|>gpu
-    net=ressimplesf(2*Game.VectorizedState,Game.maxActions,Game.FeatureSize,512,2)|>gpu
+     JLD2.@load "DataReversi8/reseau34.json" reseau
+     net=reseau|>gpu
+    #net=ressimplesf(2*Game.VectorizedState,Game.maxActions,Game.FeatureSize,512,8)|>gpu
     trainingnet=deepcopy(net)
     buffer=PoolSample(2000000)
     best=1

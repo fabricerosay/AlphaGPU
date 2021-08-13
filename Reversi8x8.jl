@@ -107,18 +107,18 @@ end
 
 
 function isOver(pos)
-	if num_bit(pos.legalplay)!=0 || num_bit(legalplay(pos.bopponent,pos.bplayer))!=0
-        return false,Int8(0)
-    else
+	# if num_bit(pos.legalplay)!=0 || num_bit(legalplay(pos.bopponent,pos.bplayer))!=0
+    #     return false,Int8(0)
+    # else
         test=Int8(num_bit(pos.bplayer)-num_bit(pos.bopponent))
-		if test>0
-        	return true,pos.player
-		elseif test==0
-			return true,Int8(0)
-		else
-			return true,-pos.player
-		end
-
+		# if test>0
+        # 	return true,pos.player
+		# elseif test==0
+		# 	return true,Int8(0)
+		# else
+		# 	return true,-pos.player
+		# end
+		return num_bit(pos.legalplay)==0 && num_bit(legalplay(pos.bopponent,pos.bplayer))==0,sign(test)*pos.player
 
         # if test!=0
         #     return true,pos.player*test
@@ -127,7 +127,7 @@ function isOver(pos)
         # else
         #     return true,-pos.player*test
         # end
-    end
+    #end
 end
 
 function simul(prb)
