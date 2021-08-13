@@ -127,10 +127,10 @@ parsed_args = parse_args(ARGS, s)
 function main(generation)
      #JLD2.@load "DataHex/reseau400.json" reseau
      #net=reseau|>gpu
-    net=MuNet(2*Game.VectorizedState,Game.maxActions,Game.FeatureSize,512,4,4)|>gpu
+    net=MuNet(2*Game.VectorizedState,Game.maxActions,Game.FeatureSize,512,6,6)|>gpu
     #net=ressimplesf(2*Game.VectorizedState,Game.maxActions,Game.FeatureSize,512,4)|>gpu
     trainingnet=deepcopy(net)
-    buffer=PoolSample(2000000,3)
+    buffer=PoolSample(2000000,5)
     best=1
     currentelo=-1000
     for i in 1:generation
@@ -151,4 +151,4 @@ function main(generation)
     end
 end
 
-main(parsed_args["generation"])
+#main(parsed_args["generation"])

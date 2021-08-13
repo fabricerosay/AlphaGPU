@@ -9,14 +9,14 @@ function losspolicy(net,x,y)
     return Flux.logitcrossentropy(p,y[1])
 end
 
-function lossTot(m,x,y)
+function lossTot(m,x,y,K)
     b=m.encoder(x[1],true)
     p,v,f=m.policy(b),m.value(b),m.feature(b)
     loss=Flux.logitcrossentropy(p,y[1])+Flux.mse(v,y[2])+0.001f0*Flux.mse(f,y[3])
-    for k in 1:3
+    for k in 1:K
         b=vcat(b,x[2][k])
         b=m.transition(b,true)
-        loss+=0.01f0*Flux.logitcrossentropy(m.policy(b),y[4][k])/3f0
+        loss+=Flux.logitcrossentropy(m.policy(b),y[4][k])/Float32(K)
     end
     #loss+=0.1f0*Flux.logitcrossentropy(p,y[4][1])
     # loss+=0.1f0*Flux.logitcrossentropy(p2,y[4][2])
@@ -91,7 +91,7 @@ function traininPipe(batchsize,net,p;in=98,out=7,fsize=1,epoch=1, lr=0.001,value
                  copyto!(tmpm_g[j],tmpm[j])
              end
 
-             totloss+=custom_train!((x,y)->lossTot(net,x,y),Flux.params(net),[((tmpx_g,tmpm_g),(tmpy_g,tmpr_g,tmpf_g,tmpyy_g))],opt)#,tmpf_g,tmpyy_g))],opt)
+             totloss+=custom_train!((x,y)->lossTot(net,x,y,K),Flux.params(net),[((tmpx_g,tmpm_g),(tmpy_g,tmpr_g,tmpf_g,tmpyy_g))],opt)#,tmpf_g,tmpyy_g))],opt)
              for j in 1:K
                  tmpm[j].=0
              end
