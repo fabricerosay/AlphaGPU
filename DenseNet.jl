@@ -243,9 +243,6 @@ mutable struct networkf
     base
     res
     policy
-    policy1
-    policy2
-    policy3
     value
     feature
 end
