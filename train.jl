@@ -52,13 +52,13 @@ function traininPipe(batchsize,net,p;in=98,out=7,fsize=1,epoch=1, lr=0.001,value
          tmpx=zeros(Float32,(in,batchsize))
          tmpy=zeros(Float32,(out,batchsize))
          tmpyy=[zeros(Float32,(out,batchsize)) for k in 1:K]
-         tmpm=[zeros(Float32,(out,batchsize)) for k in 1:K]
+         tmpm=[zeros(Float32,(maxActions,batchsize)) for k in 1:K]
          tmpf=zeros(Float32,(fsize,batchsize))
          tmpr=zeros(Float32,(1,batchsize))
          tmpx_g=CuArray(zeros(Float32,(in,batchsize)))
          tmpy_g=CuArray(zeros(Float32,(out,batchsize)))
          tmpyy_g=[CuArray(zeros(Float32,(out,batchsize))) for k in 1:K]
-         tmpm_g=[CuArray(zeros(Float32,(out,batchsize))) for k in 1:K]
+         tmpm_g=[CuArray(zeros(Float32,(maxActions,batchsize))) for k in 1:K]
          tmpf_g=CuArray(zeros(Float32,(fsize,batchsize)))
          tmpr_g=CuArray(zeros(Float32,(1,batchsize)))
          for (cpt,a) in enumerate(partition(q,batchsize))

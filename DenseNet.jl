@@ -217,7 +217,7 @@ end
 Flux.@functor MuNet
 to_cpu(nn::MuNet)=nn|>cpu
 
-MuNet(in,out,feature,nfilter,ntower1,ntower2)=MuNet(Encoder(in,nfilter,ntower1),Transition(out,nfilter,ntower2),Dense(nfilter,out),Dense(nfilter,1,σ),Dense(nfilter,feature,tanh))
+MuNet(in,out,feature,nfilter,ntower1,ntower2)=MuNet(Encoder(in,nfilter,ntower1),Transition(maxActions,nfilter,ntower2),Dense(nfilter,out),Dense(nfilter,1,σ),Dense(nfilter,feature,tanh))
 
 function (m::MuNet)(x::AbstractArray,training=false)
     b=m.encoder(x,training)

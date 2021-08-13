@@ -22,7 +22,7 @@ using ArgParse
 
 const N=7
 const NN=N*N
-const UnrollSteps=3
+const UnrollSteps=5
 
 include("Bitboard.jl")
 include("Hex.jl")
@@ -132,7 +132,7 @@ function main(generation)
     net=MuNet(2*Game.VectorizedState,Game.maxActions,Game.FeatureSize,512,4,4)|>gpu
     #net=ressimplesf(2*Game.VectorizedState,Game.maxActions,Game.FeatureSize,512,4)|>gpu
     trainingnet=deepcopy(net)
-    buffer=PoolSample(2000000,5)
+    buffer=PoolSample(2000000,UnrollSteps)
     best=1
     currentelo=-1000
     for i in 1:generation
