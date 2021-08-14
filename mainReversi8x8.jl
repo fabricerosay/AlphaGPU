@@ -51,7 +51,7 @@ module Game
         index=buffer.currentIndex
         @views begin
             buffer.pool[index].state.=state[:,i]
-            buffer.pool[index].policy.=policy[i,:]
+            buffer.pool[index].policy.=policy[:,i]
         end
         buffer.pool[index].player=player
 
@@ -119,7 +119,7 @@ parsed_args = parse_args(ARGS, s)
 
 
 function main(generation)
-     JLD2.@load "DataReversi8/reseau34.json" reseau
+     JLD2.@load "DataReversi8/reseau100.json" reseau
      net=reseau|>gpu
     #net=ressimplesf(2*Game.VectorizedState,Game.maxActions,Game.FeatureSize,512,8)|>gpu
     trainingnet=deepcopy(net)

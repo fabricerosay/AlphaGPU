@@ -27,42 +27,43 @@ function unified_array(prealloc_array::Array{T,N}) where {T,N}
     return cpu_array, gpu_array, buf
 end
 
-function create_nodes_stats(L,visits)
+function create_nodes_stats(visits,L)
 
-    (prior= zeros(Float32,(L,visits,maxActions)),q=zeros(Float32,(L,visits,maxActions)),visits=zeros(Float32,(L,visits,maxActions)),child=zeros(Int,(L,visits,maxActions)))
+    (prior= zeros(Float32,(maxActions,visits,L)),q=zeros(Float32,(maxActions,visits,L)),visits=zeros(Float32,(maxActions,visits,L)),child=zeros(Int,(maxActions,visits,L)))
 end
 
-function create_cunodes_stats(L,visits)
-    (prior=CUDA.zeros(Float32,(L,visits,maxActions)),policy=CUDA.zeros(Float32,(L,visits,maxActions)),
-    q=CUDA.zeros(Float32,(L,visits,maxActions)),visits=CUDA.zeros(Float32,(L,visits,maxActions)),
-    Achild=CUDA.zeros(Int,(L,visits,maxActions)),childID=CUDA.zeros(Int,(L,visits,visits)),childnbr=CUDA.zeros(Int,(L,visits)),policy_final=CUDA.zeros(Float32,(L,maxActions)),batch=CUDA.zeros(Float32,(2*VectorizedState,L)))
+function create_cunodes_stats(visits,L)
+    (prior=CUDA.zeros(Float32,(maxActions,visits,L)),policy=CUDA.zeros(Float32,(maxActions,visits,L)),
+    q=CUDA.zeros(Float32,(maxActions,visits,L)),visits=CUDA.zeros(Float32,(maxActions,visits,L)),
+    Achild=CUDA.zeros(Int,(maxActions,visits,L)),childID=CUDA.zeros(Int,(visits,visits,L)),childnbr=CUDA.zeros(Int,(visits,L)),policy_final=CUDA.zeros(Float32,(maxActions,L)),batch=CUDA.zeros(Float32,(2*VectorizedState,L)))
 end
 
 
 function create_roots(positions::Vector{Position},visits)
     L=length(positions)
-    state=Array{Position,2}(undef,(L,visits))
+    state=Array{Position,2}(undef,(visits,L))
     for k in 1:L
-		state[k,1]=positions[k]
+		state[1,k]=positions[k]
 	end
-	nodes=(parent=CUDA.zeros(Int,(L,visits)),
-           actionFromParent=CUDA.zeros(Int,(L,visits)),
+	nodes=(parent=CUDA.zeros(Int,(visits,L)),
+           actionFromParent=CUDA.zeros(Int,(visits,L)),
            state=CuArray(state),
-           expanded=CUDA.zeros(Int8,(L,visits)),uptodate=CUDA.fill(Int8(1),(L,visits)))
+           expanded=CUDA.zeros(Int8,(visits,L)),uptodate=CUDA.fill(Int8(1),(visits,L)))
 	return nodes
 end
 
 function create_roots(L::Int,visits)
-
-    state=Array{Position,2}(undef,(L,visits))
-    for k in 1:L
-		state[k,1]=Position()
-	end
-	nodes=(parent=CUDA.zeros(Int,(L,visits)),
-           actionFromParent=CUDA.zeros(Int,(L,visits)),
-           state=CuArray(state),
-           expanded=CUDA.zeros(Int8,(L,visits)),uptodate=CUDA.fill(Int8(1),(L,visits)))
-	return nodes
+	positions=[Position() for k in 1:L]
+	create_roots(positions,visits)
+    # state=Array{Position,2}(undef,(visits,L))
+    # for k in 1:L
+	# 	state[1,k]=Position()
+	# end
+	# nodes=(parent=CUDA.zeros(Int,(visits,L)),
+    #        actionFromParent=CUDA.zeros(Int,(visits,L)),
+    #        state=CuArray(state),
+    #        expanded=CUDA.zeros(Int8,(visits,L)),uptodate=CUDA.fill(Int8(1),(visits,L)))
+	# return nodes
 end
 
 function newton2(p,q,λ)
@@ -106,25 +107,25 @@ end
         #q=@cuStaticSharedMem(Float32,maxActions)#,maxActions*32*(2*(threadIdx().x-1)+1))
         nindex=1
 		cpt=1
-        while vnodes.expanded[i,nindex]==1
+        while vnodes.expanded[nindex,i]==1
             bestmove=-1
 			pr=0
 			lastmove=1
-            if vnodes.uptodate[i,nindex]!=1
+            if vnodes.uptodate[nindex,i]!=1
             #if nindex==1
 			    A=0f0
                 n=1f0
 				prior_rem=0f0
-				childnbr=vnodesStats.childnbr[i,nindex]
+				childnbr=vnodesStats.childnbr[nindex,i]
                 for k in 1:maxActions
-                    n+=vnodesStats.visits[i,nindex,k]
-					if vnodesStats.Achild[i,nindex,k]==0
-						prior_rem+=vnodesStats.prior[i,nindex,k]
+                    n+=vnodesStats.visits[k,nindex,i]
+					if vnodesStats.Achild[k,nindex,i]==0
+						prior_rem+=vnodesStats.prior[k,nindex,i]
 					end
-                    #q[k]=vnodesStats.q[i,nindex,k]
-                    #p[k]=vnodesStats.prior[i,nindex,k]
+                    #q[k]=vnodesStats.q[k,nindex,i]
+                    #p[k]=vnodesStats.prior[k,nindex,i]
 
-                    if vnodesStats.prior[i,nindex,k]>0
+                    if vnodesStats.prior[k,nindex,i]>0
                         A+=1f0
                     end
                 end
@@ -132,8 +133,8 @@ end
                 α=0f0
 				prior_rem*=λ
                 for k in 1:maxActions
-                    gap=max(λ*vnodesStats.prior[i,nindex,k],1f-4)
-                    α=max(α,vnodesStats.q[i,nindex,k]+gap)
+                    gap=max(λ*vnodesStats.prior[k,nindex,i],1f-4)
+                    α=max(α,vnodesStats.q[k,nindex,i]+gap)
                 end
                 err=Inf32
                 newerr=Inf32
@@ -141,10 +142,10 @@ end
                     S=prior_rem/α
                     g=-prior_rem/(α*α)
                     for k in 1:childnbr
-						CID=vnodesStats.childID[i,nindex,k]
-						action=vnodes.actionFromParent[i,CID]
-                        top=λ*vnodesStats.prior[i,nindex,action]
-                        bot=(α-vnodesStats.q[i,nindex,action])
+						CID=vnodesStats.childID[k,nindex,i]
+						action=vnodes.actionFromParent[CID,i]
+                        top=λ*vnodesStats.prior[action,nindex,i]
+                        bot=(α-vnodesStats.q[action,nindex,i])
                         S += top/bot
                         g += -top/(bot*bot)
                     end
@@ -164,31 +165,31 @@ end
                 for k=1:maxActions
                     #p[k]=λ*p[k]/(α-q[k])
 
-                    vnodesStats.policy[i,nindex,k]=λ*vnodesStats.prior[i,nindex,k]/(α-vnodesStats.q[i,nindex,k])#p[k]
+                    vnodesStats.policy[k,nindex,i]=λ*vnodesStats.prior[k,nindex,i]/(α-vnodesStats.q[k,nindex,i])#p[k]
                 end
             end
+
 			for k=1:maxActions
-				Δ=vnodesStats.policy[i,nindex,k]
+				Δ=vnodesStats.policy[k,nindex,i]
                 pr+=Δ#p[2*k-1]
 				if Δ>0
                 	bestmove=k
 				end
-                if pr>=prob[i,cpt]
+                if pr>=prob[cpt,i]
 					break
                 end
 
             end
-
-            if vnodesStats.Achild[i,nindex,bestmove]==0
+            if vnodesStats.Achild[bestmove,nindex,i]==0
 				newindex[i]+=1
-				vnodesStats.childnbr[i,nindex]+=1
-				vnodesStats.childID[i,nindex,vnodesStats.childnbr[i,nindex]]=newindex[i]
-                vnodesStats.Achild[i,nindex,bestmove]=vnodesStats.childnbr[i,nindex]
-                vnodes.parent[i,newindex[i]]=nindex
-                vnodes.actionFromParent[i,newindex[i]]=bestmove
-                vnodes.state[i,newindex[i]]=play(vnodes.state[i,nindex],bestmove)
+				vnodesStats.childnbr[nindex,i]+=1
+				vnodesStats.childID[vnodesStats.childnbr[nindex,i],nindex,i]=newindex[i]
+                vnodesStats.Achild[bestmove,nindex,i]=vnodesStats.childnbr[nindex,i]
+                vnodes.parent[newindex[i],i]=nindex
+                vnodes.actionFromParent[newindex[i],i]=bestmove
+                vnodes.state[newindex[i],i]=play(vnodes.state[nindex,i],bestmove)
             end
-            nindex=vnodesStats.childID[i,nindex,vnodesStats.Achild[i,nindex,bestmove]]
+            nindex=vnodesStats.childID[vnodesStats.Achild[bestmove,nindex,i],nindex,i]
 			cpt+=1
         end
         leaves[i]=nindex
@@ -202,8 +203,8 @@ function decoder(batch,vnodes,leaf,L)
     index = (blockIdx().x - 1) * blockDim().x + threadIdx().x
     stride = blockDim().x * gridDim().x
 	for i = index:stride:L
-		bplayer=vnodes.state[i,leaf[i]].bplayer
-		bopponent=vnodes.state[i,leaf[i]].bopponent
+		bplayer=vnodes.state[leaf[i],i].bplayer
+		bopponent=vnodes.state[leaf[i],i].bopponent
 		for j in 1:VectorizedState
 			if bplayer[j]
 				batch[j,i]=1
@@ -225,8 +226,8 @@ function decoder_roots(batch,vnodes,L)
     index = (blockIdx().x - 1) * blockDim().x + threadIdx().x
     stride = blockDim().x * gridDim().x
 	for i = index:stride:L
-		bplayer=vnodes.state[i,1].bplayer
-		bopponent=vnodes.state[i,1].bopponent
+		bplayer=vnodes.state[1,i].bplayer
+		bopponent=vnodes.state[1,i].bopponent
 		for j in 1:VectorizedState
 			if bplayer[j]
 				batch[j,i]=1
@@ -251,8 +252,8 @@ function expand(leaf,vnodes,vnodesStat,prior,noiseinit,training,L)
     stride = blockDim().x * gridDim().x
     for i = index:stride:L
         nindex=leaf[i]
-		f,r=isOver(vnodes.state[i,nindex])
-		vnodes.expanded[i,nindex]=Int8(1)-f
+		f,r=isOver(vnodes.state[nindex,i])
+		vnodes.expanded[nindex,i]=Int8(1)-f
 
         if !f
 			if nindex==1
@@ -260,21 +261,21 @@ function expand(leaf,vnodes,vnodesStat,prior,noiseinit,training,L)
 
                 A=0f0
 				for j in 1:maxActions
-					if canPlay(vnodes.state[i,nindex],j)
-						vnodesStat.prior[i,nindex,j]=prior[j,i]
-						normalize+=vnodesStat.prior[i,nindex,j]
+					if canPlay(vnodes.state[nindex,i],j)
+						vnodesStat.prior[j,nindex,i]=prior[j,i]
+						normalize+=vnodesStat.prior[j,nindex,i]
                         A+=1f0
 					end
 				end
                 if training
                     for j in 1:maxActions
-                        if canPlay(vnodes.state[i,nindex],j)
-    					    vnodesStat.prior[i,nindex,j]=0.75f0*vnodesStat.prior[i,nindex,j]/normalize+0.25f0/A
+                        if canPlay(vnodes.state[nindex,i],j)
+    					    vnodesStat.prior[j,nindex,i]=0.75f0*vnodesStat.prior[j,nindex,i]/normalize+0.25f0/A
                         end
     				end
                 else
                     for j in 1:maxActions
-    					vnodesStat.prior[i,nindex,j]/=normalize
+    					vnodesStat.prior[j,nindex,i]/=normalize
     				end
                 end
 
@@ -282,19 +283,19 @@ function expand(leaf,vnodes,vnodesStat,prior,noiseinit,training,L)
 			else
 				normalize=0
 				for j in 1:maxActions
-					if canPlay(vnodes.state[i,nindex],j)
-						vnodesStat.prior[i,nindex,j]=prior[j,i]
-						normalize+=vnodesStat.prior[i,nindex,j]
+					if canPlay(vnodes.state[nindex,i],j)
+						vnodesStat.prior[j,nindex,i]=prior[j,i]
+						normalize+=vnodesStat.prior[j,nindex,i]
 					end
 				end
 
 				for j in 1:maxActions
-					vnodesStat.prior[i,nindex,j]/=normalize
+					vnodesStat.prior[j,nindex,i]/=normalize
 				end
 			end
 		end
 		for k in 1:maxActions
-			vnodesStat.policy[i,nindex,k]=vnodesStat.prior[i,nindex,k]
+			vnodesStat.policy[k,nindex,i]=vnodesStat.prior[k,nindex,i]
 		end
 	end
 	return
@@ -306,164 +307,41 @@ function backUp(leaf,vnodes,vnodesStats,v,L)
     index = (blockIdx().x - 1) * blockDim().x + threadIdx().x
     stride = blockDim().x * gridDim().x
     for i = index:stride:L
-        nindex = vnodes.parent[i,leaf[i]]
-        move = vnodes.actionFromParent[i,leaf[i]]
-		f,r=isOver(vnodes.state[i,leaf[i]])
+        nindex = vnodes.parent[leaf[i],i]
+        move = vnodes.actionFromParent[leaf[i],i]
+		f,r=isOver(vnodes.state[leaf[i],i])
 		if f
-			value=(1+vnodes.state[i,leaf[i]].player*r)/2
+			value=(1+vnodes.state[leaf[i],i].player*r)/2
 		else
 			value=v[1,i]
 		end
         while nindex!=0
-            vnodesStats.q[i,nindex,move]=(vnodesStats.visits[i,nindex,move]*vnodesStats.q[i,nindex,move]+(1-value))/(vnodesStats.visits[i,nindex,move]+1)
-			vnodesStats.visits[i,nindex,move]+=1
-            vnodes.uptodate[i,nindex]=0
-            move = vnodes.actionFromParent[i,nindex]
-            nindex= vnodes.parent[i,nindex]
+            vnodesStats.q[move,nindex,i]=(vnodesStats.visits[move,nindex,i]*vnodesStats.q[move,nindex,i]+(1-value))/(vnodesStats.visits[move,nindex,i]+1)
+			vnodesStats.visits[move,nindex,i]+=1
+            vnodes.uptodate[nindex,i]=0
+            move = vnodes.actionFromParent[nindex,i]
+            nindex= vnodes.parent[nindex,i]
             value=1-value
         end
     end
     return
 end
 
-function adjust_policy(vnodesStats,vnodes,cpuct,L)
-    index = (blockIdx().x - 1) * blockDim().x + threadIdx().x
-    stride = blockDim().x * gridDim().x
-    for j = index:stride:64*L
-        i=div(j-1,64)+1
-        nindex=(j-1)%64+1
-        if vnodes.uptodate[i,nindex]==false
-            A=0f0
-            n=1f0
-            for k in 1:maxActions
-                n+=vnodesStats.visits[i,nindex,k]
-                #q[k]=vnodesStats.q[i,nindex,k]
-                #p[k]=vnodesStats.prior[i,nindex,k]
-
-                if vnodesStats.prior[i,nindex,k]>0
-                    A+=1f0
-                end
-            end
-            λ=cpuct*sqrt(n)/(A+n)
-            α=0f0
-            for k in 1:maxActions
-                gap=max(λ*vnodesStats.prior[i,nindex,k],1f-4)
-                α=max(α,vnodesStats.q[i,nindex,k]+gap)
-            end
-            err=Inf32
-            newerr=Inf32
-            for j in 1:100
-                S=0f0
-                g=0f0
-                for k in 1:maxActions
-                    top=λ*vnodesStats.prior[i,nindex,k]
-                    bot=(α-vnodesStats.q[i,nindex,k])
-                    S += top/bot
-                    g += -top/(bot*bot)
-                end
-
-                newerr = S - 1f0
-
-                if newerr<0.001f0 || newerr==err
-                    break
-                else
-                    α -= newerr/g
-                    err= newerr
-                end
-            end
-
-
-            for k=1:maxActions
-                #p[k]=λ*p[k]/(α-q[k])
-
-                vnodesStats.policy[i,nindex,k]=λ*vnodesStats.prior[i,nindex,k]/(α-vnodesStats.q[i,nindex,k])#p[k]
-            end
-        end
-    end
-end
-
-# function advance(vnodes,vnodesStats,prob,finished,results,ind)
-# 	index = (blockIdx().x - 1) * blockDim().x + threadIdx().x
-#     stride = blockDim().x * gridDim().x
-#     for i = index:stride:length(finished)
-# 		N=0
-# 		if finished[i]==0
-# 			if ind<20
-# 				move=-1
-#
-# 				n=0
-# 				for k in 1:maxActions
-# 					n+=vnodesStats.policy[i,1,k]
-# 					if vnodesStats.policy[i,1,k]>0
-# 						move=k
-# 						if n>=prob[i]
-# 							break
-# 						end
-# 					end
-# 				end
-# 			else
-# 				best=0
-# 				move=-1
-# 				for k in 1:maxActions
-# 					if vnodesStats.policy[i,1,k]>best
-# 						move=k
-# 						best=vnodesStats.policy[i,1,k]
-# 					end
-# 				end
-# 			end
-# 			if move==-1
-# 				@cuprint("bug")
-# 				@cuprintln(prob[i])
-# 				@cuprintln(n)
-# 			end
-# 			vnodes.state[i,1]=play(vnodes.state[i,1],move)
-#
-# 			f,r=isOver(vnodes.state[i,1])
-# 			if f
-# 				finished[i]=1
-# 				results[i]=r
-# 			end
-# 		end
-# 	end
-# 	return
-# end
-#
-# function push_results(states,vnodesStats,finalstates,policy,values,finished,ind,visits)
-# 	index = (blockIdx().x - 1) * blockDim().x + threadIdx().x
-#     stride = blockDim().x * gridDim().x
-# 	for i = index:stride:length(finished)
-# 		if finished[i]==0
-# 			for k in 1:98
-# 				finalstates[i,ind,k]=states[k,i]
-# 			end
-# 			q=0
-# 			N=0
-# 			for k in 1:7
-# 				N+=vnodesStats.visits[i,1,k]
-# 				q+=vnodesStats.q[i,1,k]
-# 				policy[i,ind,k]=vnodesStats.policy[i,1,k]
-# 			end
-# 			values[i,ind]=q/N
-# 		end
-# 	end
-# 	return
-# end
-
 function copy_pol(policy_final,policy,L)
     index = (blockIdx().x - 1) * blockDim().x + threadIdx().x
     stride = blockDim().x * gridDim().x
     for i = index:stride:L
         for k in 1:maxActions
-            policy_final[i,k]=policy[i,1,k]
+            policy_final[k,i]=policy[k,1,i]
         end
     end
 return
 end
 
 
-function init(L,visits)
-    vnodesStats=create_cunodes_stats(L,visits)
-    (vnodes=create_roots(L,visits),
+function init(visits,L)
+    vnodesStats=create_cunodes_stats(visits,L)
+    (vnodes=create_roots(visits,L),
 vnodesStats=vnodesStats,
 leaf=CUDA.zeros(Int,L),
 newindex=CUDA.fill(Int(1),L))
@@ -471,7 +349,7 @@ end
 
 function init(positions::Vector{Position},visits)
     L=length(positions)
-    vnodesStats=create_cunodes_stats(L,visits)
+    vnodesStats=create_cunodes_stats(visits,L)
     return (vnodes=create_roots(positions,visits),
 vnodesStats=vnodesStats,
 leaf=CUDA.zeros(Int,L),
@@ -482,7 +360,7 @@ function reinit(positions,vnodes,L)
     index = (blockIdx().x - 1) * blockDim().x + threadIdx().x
     stride = blockDim().x * gridDim().x
     for i = index:stride:L
-        vnodes.state[i,1]=positions[i]
+        vnodes.state[1,i]=positions[i]
     end
     return
 end
@@ -516,7 +394,7 @@ function mcts_single(actor,visits,nthreads,vnodes,vnodesStats,leaf,newindex,L;tr
     # softmax!(prior)
 
 	for k in 1:visits
-		prob=CUDA.rand(L,maxLengthGame)
+		prob=CUDA.rand(maxLengthGame,L)
         synchronize()
 		t=time()
         #println("descent")
@@ -564,7 +442,7 @@ function mcts_single(actor,visits,nthreads,vnodes,vnodesStats,leaf,newindex,L;tr
 	synchronize()
     @cuda threads=nthreads blocks=numblocks copy_pol(vnodesStats.policy_final,vnodesStats.policy,L)
     synchronize()
-    # t6=time()-t6
+    t6=time()-t6
     # t7=time()-t7
     # #println(t7)
 	#
@@ -623,6 +501,7 @@ function mcts(actor,visits,ngames,buffer::Main.PoolSample;θ=1,cpuct=2.0,noise=F
         #     truevisits=visits
         # end
 		mcts_single(actor,truevisits,256,vnodes,vnodesStats,leaf,newindex,L,cpuct=cpuct,noise=noise)
+
 
         policy,batch=Array(vnodesStats.policy_final),Array(vnodesStats.batch)
 		t1=time()-t1
@@ -702,7 +581,7 @@ end
 function mcts(actor1,actor2,visits,ngames;cpuct=2f0,noise=Float32(1/maxActions),conv=2)
 	ttot=time()
     positions=[Position() for k in 1:ngames]
-    (vnodes,vnodesStats,leaf,newindex)=init(length(positions),visits)
+    (vnodes,vnodesStats,leaf,newindex)=init(positions,visits)
 	round=0
 	v=0
 	d=0
@@ -724,14 +603,14 @@ function mcts(actor1,actor2,visits,ngames;cpuct=2f0,noise=Float32(1/maxActions),
 		for  i in 1:length(positions)
 
 			if round<15
-				c=sample(1:maxActions,Weights(@view policy[i,:]))
+				c=sample(1:maxActions,Weights(@view policy[:,i]))
 			else
-				c=argmax(@view policy[i,:])
+				c=argmax(@view policy[:,i])
 			end
 			#println("c=$c,player=",positions[i].player,"  ",argmax(π))
 			if !canPlay(positions[i],c)
 				println("faute")
-			    return positions[i],policy[i,:]
+			    return positions[i],policy[:,i]
 			end
 			positions[i]=play(positions[i],c)
 			f,res=isOver(positions[i])

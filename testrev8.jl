@@ -17,12 +17,12 @@ puct=FMCTS.MctsContext(1.5,convert_back_cpu(actor),zeros(Float32,128))
    while !RevSix.isOver(game)[1]
        if game.player==player
          p,v=puct(game,readout)
-         _,α,β,cc=actor(CuArray{Float32}(FMCTS.decode_cpu(game)),training=true)
+         #_,α,β,cc=actor(CuArray{Float32}(FMCTS.decode_cpu(game)),training=true)
 #_,p=mcts_gpu.mcts_single(actor,readout,256,vnodes,vnodesStats,leaf,newindex,1,training=false,cpuct=1.5,noise=1/36)
            play=argmax(p)
            println("coup:",dic_coups_inverse[play])
            println("situation: $v")
-           println("α:$α, β:$β")
+         #  println("α:$α, β:$β")
        else
 
            play=-1
