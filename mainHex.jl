@@ -55,7 +55,7 @@ module Game
         index=buffer.currentIndex
         @views begin
             buffer.pool[index].state.=state[:,i]
-            buffer.pool[index].policy.=policy[i,:]
+            buffer.pool[index].policy.=policy[:,i]
         end
         buffer.pool[index].player=player
 
