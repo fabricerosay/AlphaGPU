@@ -91,7 +91,7 @@ s = ArgParseSettings()
     "--samples"
     help = "number of selfplay games per generation"
     arg_type = Int
-    default = 16*1024
+    default = 32*1024
     "--rollout"
     help = "number of rollouts"
     arg_type = Int
@@ -119,7 +119,7 @@ parsed_args = parse_args(ARGS, s)
 
 
 function main(generation)
-     JLD2.@load "DataReversi8/reseau34.json" reseau
+     JLD2.@load "DataReversi8/reseau398.json" reseau
      net=reseau|>gpu
     #net=ressimplesf(2*Game.VectorizedState,Game.maxActions,Game.FeatureSize,512,8)|>gpu
     trainingnet=deepcopy(net)
@@ -141,4 +141,4 @@ function main(generation)
     end
 end
 
-main(parsed_args["generation"])
+#main(parsed_args["generation"])

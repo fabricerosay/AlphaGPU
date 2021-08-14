@@ -140,12 +140,14 @@ end
 
 function evaluate(leaf::Node,actor,prealloc,komi=0)
     f,r=isOver(leaf.state)
-    if f
-        if r>0
-            r=1
-        elseif r<0
-            r=-1
-        end
+     if f
+    #     if r>0
+    #         r=1
+    #     elseif r<0
+    #         r=-1
+	# 	else
+	# 		r=0
+    #     end
 
         return true,zeros(Float32,maxActions),(1+r*leaf.state.player)/2
     else
