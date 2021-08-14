@@ -53,16 +53,17 @@ function create_roots(positions::Vector{Position},visits)
 end
 
 function create_roots(L::Int,visits)
-
-    state=Array{Position,2}(undef,(visits,L))
-    for k in 1:L
-		state[1,k]=Position()
-	end
-	nodes=(parent=CUDA.zeros(Int,(visits,L)),
-           actionFromParent=CUDA.zeros(Int,(visits,L)),
-           state=CuArray(state),
-           expanded=CUDA.zeros(Int8,(visits,L)),uptodate=CUDA.fill(Int8(1),(visits,L)))
-	return nodes
+	positions=[Position() for k in 1:L]
+	create_roots(positions,visits)
+    # state=Array{Position,2}(undef,(visits,L))
+    # for k in 1:L
+	# 	state[1,k]=Position()
+	# end
+	# nodes=(parent=CUDA.zeros(Int,(visits,L)),
+    #        actionFromParent=CUDA.zeros(Int,(visits,L)),
+    #        state=CuArray(state),
+    #        expanded=CUDA.zeros(Int8,(visits,L)),uptodate=CUDA.fill(Int8(1),(visits,L)))
+	# return nodes
 end
 
 function newton2(p,q,λ)
@@ -142,7 +143,7 @@ end
                     g=-prior_rem/(α*α)
                     for k in 1:childnbr
 						CID=vnodesStats.childID[k,nindex,i]
-						action=vnodes.actionFromParent[i,CID]
+						action=vnodes.actionFromParent[CID,i]
                         top=λ*vnodesStats.prior[action,nindex,i]
                         bot=(α-vnodesStats.q[action,nindex,i])
                         S += top/bot
@@ -167,6 +168,7 @@ end
                     vnodesStats.policy[k,nindex,i]=λ*vnodesStats.prior[k,nindex,i]/(α-vnodesStats.q[k,nindex,i])#p[k]
                 end
             end
+
 			for k=1:maxActions
 				Δ=vnodesStats.policy[k,nindex,i]
                 pr+=Δ#p[2*k-1]
@@ -178,11 +180,10 @@ end
                 end
 
             end
-
             if vnodesStats.Achild[bestmove,nindex,i]==0
 				newindex[i]+=1
 				vnodesStats.childnbr[nindex,i]+=1
-				vnodesStats.childID[i,nindex,vnodesStats.childnbr[nindex,i]]=newindex[i]
+				vnodesStats.childID[vnodesStats.childnbr[nindex,i],nindex,i]=newindex[i]
                 vnodesStats.Achild[bestmove,nindex,i]=vnodesStats.childnbr[nindex,i]
                 vnodes.parent[newindex[i],i]=nindex
                 vnodes.actionFromParent[newindex[i],i]=bestmove
@@ -393,7 +394,7 @@ function mcts_single(actor,visits,nthreads,vnodes,vnodesStats,leaf,newindex,L;tr
     # softmax!(prior)
 
 	for k in 1:visits
-		prob=CUDA.rand(L,maxLengthGame)
+		prob=CUDA.rand(maxLengthGame,L)
         synchronize()
 		t=time()
         #println("descent")
@@ -441,21 +442,21 @@ function mcts_single(actor,visits,nthreads,vnodes,vnodesStats,leaf,newindex,L;tr
 	synchronize()
     @cuda threads=nthreads blocks=numblocks copy_pol(vnodesStats.policy_final,vnodesStats.policy,L)
     synchronize()
-    # t6=time()-t6
+    t6=time()-t6
     # t7=time()-t7
     # #println(t7)
 	#
     # #CUDA.unsafe_free!(prior)
     # #CUDA.unsafe_free!(v)
-    # println(t0)
-    # println(t1)
-    # println(t2)
-    # println(t3)
-    # println(t4)
-    # println(t5)
-    # #return
-    # println(t6)
-    # println(t0+t1+t2+t3+t4+t5+t6)
+    println(t0)
+    println(t1)
+    println(t2)
+    println(t3)
+    println(t4)
+    println(t5)
+    #return
+    println(t6)
+    println(t0+t1+t2+t3+t4+t5+t6)
 	# #Array(batch),Array(vnodesStats.policy[:,1,:])#,Array(sum(vnodesStats.q[:,1,:],dims=3)./visits)
 	return
 end
@@ -500,6 +501,7 @@ function mcts(actor,visits,ngames,buffer::Main.PoolSample;θ=1,cpuct=2.0,noise=F
         #     truevisits=visits
         # end
 		mcts_single(actor,truevisits,256,vnodes,vnodesStats,leaf,newindex,L,cpuct=cpuct,noise=noise)
+
 
         policy,batch=Array(vnodesStats.policy_final),Array(vnodesStats.batch)
 		t1=time()-t1
@@ -579,7 +581,7 @@ end
 function mcts(actor1,actor2,visits,ngames;cpuct=2f0,noise=Float32(1/maxActions),conv=2)
 	ttot=time()
     positions=[Position() for k in 1:ngames]
-    (vnodes,vnodesStats,leaf,newindex)=init(length(positions),visits)
+    (vnodes,vnodesStats,leaf,newindex)=init(positions,visits)
 	round=0
 	v=0
 	d=0
@@ -601,9 +603,9 @@ function mcts(actor1,actor2,visits,ngames;cpuct=2f0,noise=Float32(1/maxActions),
 		for  i in 1:length(positions)
 
 			if round<15
-				c=sample(1:maxActions,Weights(@view policy[;,i]))
+				c=sample(1:maxActions,Weights(@view policy[:,i]))
 			else
-				c=argmax(@view policy[;,i])
+				c=argmax(@view policy[:,i])
 			end
 			#println("c=$c,player=",positions[i].player,"  ",argmax(π))
 			if !canPlay(positions[i],c)
