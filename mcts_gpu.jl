@@ -448,15 +448,15 @@ function mcts_single(actor,visits,nthreads,vnodes,vnodesStats,leaf,newindex,L;tr
 	#
     # #CUDA.unsafe_free!(prior)
     # #CUDA.unsafe_free!(v)
-    println(t0)
-    println(t1)
-    println(t2)
-    println(t3)
-    println(t4)
-    println(t5)
-    #return
-    println(t6)
-    println(t0+t1+t2+t3+t4+t5+t6)
+    # println(t0)
+    # println(t1)
+    # println(t2)
+    # println(t3)
+    # println(t4)
+    # println(t5)
+    # #return
+    # println(t6)
+    # println(t0+t1+t2+t3+t4+t5+t6)
 	# #Array(batch),Array(vnodesStats.policy[:,1,:])#,Array(sum(vnodesStats.q[:,1,:],dims=3)./visits)
 	return
 end
