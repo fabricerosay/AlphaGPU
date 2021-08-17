@@ -119,9 +119,9 @@ parsed_args = parse_args(ARGS, s)
 
 
 function main(generation)
-     JLD2.@load "DataReversi8/reseau100.json" reseau
-     net=reseau|>gpu
-    #net=ressimplesf(2*Game.VectorizedState,Game.maxActions,Game.FeatureSize,512,8)|>gpu
+     #JLD2.@load "DataReversi8/reseau100.json" reseau
+    # net=reseau|>gpu
+    net=ressimplesf(2*Game.VectorizedState,Game.maxActions,Game.FeatureSize,512,8)|>gpu
     trainingnet=deepcopy(net)
     buffer=PoolSample(2000000)
     best=1
