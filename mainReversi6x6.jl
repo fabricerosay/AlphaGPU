@@ -22,23 +22,19 @@ using ArgParse
 
 include("Bitboard.jl")
 include("Reversi6x6.jl")
-const UnrollSteps=5
-
-
-
 module Game
+
     export Position, canPlay,play,isOver,affiche,VectorizedState,FeatureSize,maxActions,maxLengthGame,PoolSample,push_buffer,update_buffer,length_buffer
     using ..RevSix
     mutable struct Sample
         state::Vector{Int8}
-        policy::Array{Float32,2}
-        move::Vector{Int}
+        policy::Vector{Float32}
         player::Int8
         value::Float32
         fstate::Vector{Int8}
     end
 
-    Sample(k::Int)=Sample(zeros(Int8,2*VectorizedState),zeros(Float32,(maxActions,k+1)),[0 for j in 1:k],1,0,zeros(Int8,FeatureSize))
+    Sample()=Sample(zeros(Int8,2*VectorizedState),zeros(Float32,maxActions),1,0,zeros(Int8,FeatureSize))
 
 
     mutable struct PoolSample
@@ -46,16 +42,15 @@ module Game
         currentIndex::Int
         pool::Vector{Sample}
         full::Bool
-        unrollsteps::Int
     end
 
-    PoolSample(N::Int,k::Int)=PoolSample(N,1,Sample[Sample(k) for j in 1:N],false,k)
+    PoolSample(N::Int)=PoolSample(N,1,Sample[Sample() for k in 1:N],false)
 
     function push_buffer(buffer::PoolSample,state,policy,player,i)
         index=buffer.currentIndex
         @views begin
             buffer.pool[index].state.=state[:,i]
-            buffer.pool[index].policy[:,1].=policy[:,i]
+            buffer.pool[index].policy.=policy[:,i]
         end
         buffer.pool[index].player=player
 
@@ -69,16 +64,13 @@ module Game
 
     function update_buffer(buffer::PoolSample,index,result,fstate)
         L=length(index)
-        unrollsteps=buffer.unrollsteps
         for (k,id) in enumerate(index)
+
             player=buffer.pool[id].player
+
             buffer.pool[id].value=(1+result*player)/2
             buffer.pool[id].fstate.=fstate*player
-            for i in 1:unrollsteps
-                j=min(L,k+i)
-                  buffer.pool[id].policy[:,i+1].=buffer.pool[index[j]].policy[:,1]
-                buffer.pool[id].move[i]=buffer.pool[index[j-1]].move[1]
-            end
+
         end
     end
 
@@ -128,10 +120,10 @@ parsed_args = parse_args(ARGS, s)
 function main(generation)
      #JLD2.@load "DataHex/reseau400.json" reseau
      #net=reseau|>gpu
-    net=MuNet(2*Game.VectorizedState,Game.maxActions,Game.FeatureSize,512,4,4)|>gpu
-    #net=ressimplesf(2*Game.VectorizedState,Game.maxActions,Game.FeatureSize,512,4)|>gpu
+    #net=MuNet(2*Game.VectorizedState,Game.maxActions,Game.FeatureSize,512,4,4)|>gpu
+    net=ressimplesf(2*Game.VectorizedState,Game.maxActions,Game.FeatureSize,512,4)|>gpu
     trainingnet=deepcopy(net)
-    buffer=PoolSample(2000000,UnrollSteps)
+    buffer=PoolSample(2000000)
     best=1
     currentelo=-1000
     for i in 1:generation
